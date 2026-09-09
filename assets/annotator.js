@@ -9,7 +9,7 @@
 
   var CONSOLE_URL = 'https://whytho.jakelabate.com/';
   var SYNC_URL = 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync';
-  var VERSION = '1.5';
+  var VERSION = '2.0';
   var STORE_PREFIX = 'why:v1:';
   var CATEGORIES = [
     { id: 'seo', label: 'SEO', color: '#5b21b6' },
@@ -178,6 +178,7 @@
 
   var syncState = TOKEN ? 'syncing' : 'local';
   var lastError = '';
+  var identity = { author: '', org_name: null, team_id: null, org_id: null };
 
   function syncRequest(action, extra) {
     var body = {
@@ -241,8 +242,19 @@
     return doc.notes.filter(function (n) { return !n._synced; });
   }
 
+  function absorb(res) {
+    if (!res) return;
+    if (res.author) identity.author = res.author;
+    identity.org_name = res.org_name || null;
+    identity.org_id = res.org_id || null;
+    identity.team_id = res.team_id || null;
+  }
+
   function fromRow(r) {
     return {
+      author: r.author || '',
+      team: r.team_name || null,
+      mine: r.mine !== false,
       id: r.client_id,
       selector: r.selector,
       fallbackSelector: r.fallback_selector || '',
@@ -253,7 +265,8 @@
       body: r.body,
       author: r.author || '',
       viewport: r.viewport || {},
-      createdAt: r.created_at
+      createdAt: r.created_at,
+      _synced: true
     };
   }
 
@@ -284,6 +297,7 @@
     catch (e) { lastError = reason(e); setSync('offline', 'Sync could not start. ' + lastError); return; }
     call.then(function (res) {
       if (res.error) { setSync('error', res.error); return; }
+      absorb(res);
       var cloud = (res.notes || []).map(fromRow);
       var byId = {};
       cloud.forEach(function (n) { byId[n.id] = n; });
@@ -306,6 +320,12 @@
     catch (e) { lastError = reason(e); setSync('offline', 'Sync could not start. ' + lastError); return; }
     call.then(function (res) {
       if (res.error) { setSync('error', res.error); return; }
+      absorb(res);
+      (res.notes || []).forEach(function (row) {
+        doc.notes.forEach(function (n) {
+          if (n.id === row.client_id) { n.author = row.author; n.team = row.team_name; n.mine = true; }
+        });
+      });
       lastError = '';
       notes.forEach(function (n) { n._synced = true; });
       Store.write(doc);
@@ -402,6 +422,7 @@
   .composer { position: fixed; bottom: 0; right: 0; width: 380px; max-width: 100vw; background: #fff; border-top: 1px solid #e6e1da; padding: 14px 16px 16px; pointer-events: auto; box-shadow: 0 -8px 30px rgba(15,23,42,.12); }
   .composer .target { font-size: 11px; color: #6b6480; margin-bottom: 8px; word-break: break-all; }
   .composer textarea { width: 100%; min-height: 84px; font: inherit; font-size: 14px; padding: 9px 10px; border: 1px solid #ddd7ce; border-radius: 7px; resize: vertical; color: #1c1a2e; }
+  .composer .posting-as { font-size: 12px; color: #6b6480; margin-top: 9px; }
   .composer .row { display: flex; gap: 8px; margin-top: 8px; }
   .composer select, .composer input { font: inherit; font-size: 13px; padding: 7px 8px; border: 1px solid #ddd7ce; border-radius: 7px; background: #fff; flex: 1; min-width: 0; color: #1c1a2e; }
   .composer .actions { display: flex; gap: 8px; margin-top: 10px; }
@@ -457,8 +478,6 @@
   var filter = 'all';
   var editing = null;      // note being composed or edited
   var pinNodes = [];
-  var author = '';
-  try { author = localStorage.getItem('why:author') || ''; } catch (e) { }
 
   function catOf(id) {
     for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].id === id) return CATEGORIES[i];
@@ -590,7 +609,7 @@
     send.addEventListener('click', sendToConsole);
     var off = el('button', '', 'Close');
     off.addEventListener('click', function () { publicApi.off(); });
-    var vpn = el('span', 'vp', vp.breakpoint + ' ' + vp.width + 'px');
+    var vpn = el('span', 'vp', (identity.org_name ? identity.org_name + '  ' : '') + vp.breakpoint + ' ' + vp.width + 'px');
 
     var labels = {
       cloud: 'Saved to your account',
@@ -678,7 +697,7 @@
         '<div class="body">' + esc(n.body) + '</div>' +
         '<code>' + esc(n.selector) + '</code>' +
         '<div class="top" style="margin-top:8px">' +
-        '<span>' + esc(n.author || 'unattributed') + '</span>' +
+        '<span><b>' + esc(n.author || 'you') + '</b>' + (n.team ? ' &middot; ' + esc(n.team) : '') + '</span>' +
         '<span>' + esc(new Date(n.createdAt).toLocaleDateString()) + '</span>' +
         (alive ? '' : '<span style="margin-left:auto;color:#64748b">element not found</span>') +
         '</div>';
@@ -714,7 +733,8 @@
       category: 'seo',
       status: 'decided',
       body: '',
-      author: author,
+      author: identity.author || '',
+      mine: true,
       viewport: viewportSnapshot(),
       createdAt: new Date().toISOString()
     };
@@ -755,12 +775,11 @@
     row.appendChild(cat); row.appendChild(st);
     composer.appendChild(row);
 
-    var row2 = el('div', 'row');
-    var who = document.createElement('input');
-    who.placeholder = 'Your name';
-    who.value = n.author || '';
-    row2.appendChild(who);
-    composer.appendChild(row2);
+    var who = el('div', 'posting-as');
+    who.textContent = identity.author
+      ? 'Posting as ' + identity.author + (identity.org_name ? ' in ' + identity.org_name : '')
+      : (TOKEN ? 'Posting to your account' : 'Saved in this browser only, not attributed to anyone');
+    composer.appendChild(who);
 
     var actions = el('div', 'actions');
     var save = el('button', 'primary', doc.notes.indexOf(n) > -1 ? 'Save note' : 'Add note');
@@ -769,9 +788,7 @@
       n.body = ta.value.trim();
       n.category = cat.value;
       n.status = st.value;
-      n.author = who.value.trim();
-      author = n.author;
-      try { localStorage.setItem('why:author', author); } catch (e) { }
+      n.author = identity.author || '';
       if (doc.notes.indexOf(n) === -1) doc.notes.push(n);
       Store.write(doc);
       editing = null;
@@ -782,7 +799,7 @@
     var cancel = el('button', 'ghost', 'Cancel');
     cancel.addEventListener('click', function () { editing = null; render(); });
     actions.appendChild(save); actions.appendChild(cancel);
-    if (doc.notes.indexOf(n) > -1) {
+    if (doc.notes.indexOf(n) > -1 && n.mine !== false) {
       var del = el('button', 'ghost danger', 'Delete');
       del.addEventListener('click', function () {
         doc.notes = doc.notes.filter(function (x) { return x.id !== n.id; });

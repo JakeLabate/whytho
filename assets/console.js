@@ -12,6 +12,9 @@
   var sb = window.supabase.createClient(CFG.supabaseUrl, CFG.publishableKey);
   var user = null;
   var token = null;
+  var profile = null;      // display name and active workspace
+  var orgs = [];           // organizations this account belongs to
+  var myRole = null;
   var current = null;      // { page, notes }
 
   var $ = function (s) { return document.querySelector(s); };
@@ -190,6 +193,192 @@
       (token ? ' data-why-token="' + token + '"' : '') + ' defer><\/script>';
   }
 
+  /* ---------- workspace ---------- */
+
+  function loadWorkspace() {
+    if (!user) { renderWorkspace(); return Promise.resolve(); }
+    return sb.from('why_profiles').select('*').eq('user_id', user.id).maybeSingle()
+      .then(function (res) {
+        profile = res.data || { user_id: user.id, display_name: null, active_org_id: null, active_team_id: null };
+        return sb.from('why_org_members').select('org_id, role').eq('user_id', user.id);
+      })
+      .then(function (res) {
+        var roles = {};
+        (res.data || []).forEach(function (m) { roles[m.org_id] = m.role; });
+        return sb.from('why_orgs').select('id, name').then(function (o) {
+          orgs = (o.data || []).map(function (x) { x.role = roles[x.id] || 'member'; return x; });
+          myRole = profile.active_org_id ? (roles[profile.active_org_id] || 'member') : null;
+        });
+      });
+  }
+
+  function setActive(orgId, teamId) {
+    return sb.from('why_profiles').upsert({
+      user_id: user.id, active_org_id: orgId, active_team_id: teamId || null, updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' }).then(function (res) {
+      if (res.error) { toast(res.error.message); return; }
+      return boot();
+    });
+  }
+
+  function activeOrg() {
+    var found = null;
+    orgs.forEach(function (o) { if (profile && o.id === profile.active_org_id) found = o; });
+    return found;
+  }
+
+  function renderWorkspace() {
+    var box = $('#workspace-box');
+    if (!user) {
+      box.innerHTML = '<p class="sub">Sign in to create an organization or join one.</p>';
+      return;
+    }
+
+    var org = activeOrg();
+    var html = '<div class="ws-head"><div><b>' +
+      (org ? esc(org.name) : 'Working on your own') + '</b><br><span class="sub">' +
+      (org ? 'Everyone in this organization sees notes written here. You are ' + esc(myRole) + '.'
+           : 'Notes are private to ' + esc(profile.display_name || user.email) + '.') +
+      '</span></div></div>';
+
+    if (orgs.length) {
+      html += '<div class="ws-row"><label class="ws-label">Active workspace</label><select id="org-switch">';
+      html += '<option value="">Personal, private to me</option>';
+      orgs.forEach(function (o) {
+        html += '<option value="' + o.id + '"' + (org && o.id === org.id ? ' selected' : '') + '>' + esc(o.name) + '</option>';
+      });
+      html += '</select></div>';
+    }
+
+    html += '<div id="ws-detail"></div>';
+    html += '<details class="ws-more"><summary>Create or join an organization</summary>' +
+      '<div class="ws-row"><input id="org-name" placeholder="Organization name"><button class="btn small" id="org-create">Create</button></div>' +
+      '<div class="ws-row"><input id="join-code" placeholder="Invite code"><button class="btn quiet small" id="join-go">Join</button></div>' +
+      '</details>';
+
+    box.innerHTML = html;
+
+    if ($('#org-switch')) {
+      $('#org-switch').addEventListener('change', function (e) { setActive(e.target.value || null, null); });
+    }
+    $('#org-create').addEventListener('click', function () {
+      var name = $('#org-name').value.trim();
+      if (!name) { toast('Name the organization first.'); return; }
+      sb.rpc('why_create_org', { p_name: name }).then(function (res) {
+        var out = res.data || {};
+        if (res.error || out.error) { toast((res.error && res.error.message) || out.error); return; }
+        toast(name + ' created. You are the owner.');
+        boot();
+      });
+    });
+    $('#join-go').addEventListener('click', function () {
+      var code = $('#join-code').value.trim();
+      if (!code) { toast('Paste the invite code.'); return; }
+      sb.rpc('why_redeem_invite', { p_code: code }).then(function (res) {
+        var out = res.data || {};
+        if (res.error || out.error) { toast((res.error && res.error.message) || out.error); return; }
+        toast('Joined.');
+        boot();
+      });
+    });
+
+    if (org) renderOrgDetail(org);
+  }
+
+  function renderOrgDetail(org) {
+    var wrap = $('#ws-detail');
+    wrap.innerHTML = '<p class="sub">Loading teams and people.</p>';
+    var teams = [], members = [], myTeams = [];
+
+    sb.from('why_teams').select('id, name').eq('org_id', org.id)
+      .then(function (r) { teams = r.data || []; return sb.from('why_org_members').select('user_id, role').eq('org_id', org.id); })
+      .then(function (r) {
+        members = r.data || [];
+        return sb.from('why_profiles').select('user_id, display_name').in('user_id', members.map(function (m) { return m.user_id; }));
+      })
+      .then(function (r) {
+        var names = {};
+        (r.data || []).forEach(function (p) { names[p.user_id] = p.display_name; });
+        return sb.from('why_team_members').select('team_id').eq('user_id', user.id).then(function (t) {
+          myTeams = (t.data || []).map(function (x) { return x.team_id; });
+          paint(names);
+        });
+      });
+
+    function paint(names) {
+      var isAdmin = myRole === 'owner' || myRole === 'admin';
+      var html = '';
+
+      html += '<div class="ws-block"><label class="ws-label">Teams</label>';
+      if (!teams.length) html += '<p class="sub">No teams yet. Notes will be attributed to you and to the organization.</p>';
+      html += '<div class="ws-chips">';
+      teams.forEach(function (t) {
+        var on = profile.active_team_id === t.id;
+        html += '<button class="chip-btn' + (on ? ' on' : '') + '" data-team="' + t.id + '">' + esc(t.name) +
+          (myTeams.indexOf(t.id) > -1 ? '' : ' <span class="sub">join</span>') + '</button>';
+      });
+      html += '</div>';
+      if (isAdmin) {
+        html += '<div class="ws-row"><input id="team-name" placeholder="New team name"><button class="btn quiet small" id="team-create">Add team</button></div>';
+      }
+      html += '</div>';
+
+      html += '<div class="ws-block"><label class="ws-label">People</label><ul class="ws-people">';
+      members.forEach(function (m) {
+        html += '<li><b>' + esc(names[m.user_id] || 'Unnamed account') + '</b> <span class="sub">' + esc(m.role) +
+          (m.user_id === user.id ? ', you' : '') + '</span></li>';
+      });
+      html += '</ul>';
+
+      if (isAdmin) {
+        html += '<div class="ws-row"><select id="invite-team"><option value="">No specific team</option>';
+        teams.forEach(function (t) { html += '<option value="' + t.id + '">' + esc(t.name) + '</option>'; });
+        html += '</select><select id="invite-role"><option value="member">Member</option><option value="admin">Admin</option></select>' +
+          '<button class="btn small" id="invite-make">Create invite code</button></div>' +
+          '<p class="sub" id="invite-out"></p>';
+      }
+      html += '</div>';
+
+      wrap.innerHTML = html;
+
+      wrap.querySelectorAll('[data-team]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-team');
+          sb.from('why_team_members').upsert({ team_id: id, user_id: user.id }, { onConflict: 'team_id,user_id' })
+            .then(function () { return setActive(org.id, id); });
+        });
+      });
+
+      if ($('#team-create')) {
+        $('#team-create').addEventListener('click', function () {
+          var name = $('#team-name').value.trim();
+          if (!name) { toast('Name the team first.'); return; }
+          sb.from('why_teams').insert({ org_id: org.id, name: name }).then(function (r) {
+            if (r.error) { toast(r.error.message); return; }
+            toast(name + ' added.');
+            renderOrgDetail(org);
+          });
+        });
+      }
+
+      if ($('#invite-make')) {
+        $('#invite-make').addEventListener('click', function () {
+          var code = randomToken().slice(0, 12);
+          sb.from('why_invites').insert({
+            code: code, org_id: org.id,
+            team_id: $('#invite-team').value || null,
+            role: $('#invite-role').value,
+            created_by: user.id
+          }).then(function (r) {
+            if (r.error) { toast(r.error.message); return; }
+            $('#invite-out').innerHTML = 'Send this code, it works for 30 days: <code>' + code + '</code>';
+            copy(code, 'Invite code');
+          });
+        });
+      }
+    }
+  }
+
   /* ---------- library ---------- */
 
   function renderLibrary() {
@@ -223,7 +412,8 @@
         (nres.data || []).forEach(function (n) { counts[n.page_id] = (counts[n.page_id] || 0) + 1; });
         wrap.innerHTML = '';
         pages.forEach(function (p) {
-          wrap.appendChild(row(p.path, p.origin, counts[p.id] || 0, p.updated_at, function () { openCloud(p); }));
+          var label = p.org_id ? (activeOrg() && p.org_id === activeOrg().id ? activeOrg().name : 'Shared') : 'Personal';
+          wrap.appendChild(row(p.path, p.origin + '  ' + label, counts[p.id] || 0, p.updated_at, function () { openCloud(p); }));
         });
         maybeOfferUpload();
       });
@@ -259,17 +449,21 @@
     var db = localDb();
     if (!db.pages.length) return;
     var jobs = db.pages.map(function (p) {
+      var orgId = profile ? profile.active_org_id : null;
       return sb.from('why_pages').upsert(
-        { user_id: user.id, origin: p.origin, path: p.path, url: p.url, title: p.title },
-        { onConflict: 'user_id,origin,path' }
+        { user_id: user.id, org_id: orgId, origin: p.origin, path: p.path, url: p.url, title: p.title },
+        { onConflict: orgId ? 'org_id,origin,path' : 'user_id,origin,path' }
       ).select('id').single().then(function (res) {
         if (res.error || !res.data) return;
         var rows = p.notes.map(function (n) {
           return {
-            page_id: res.data.id, user_id: user.id, client_id: n.id, selector: n.selector,
+            page_id: res.data.id, user_id: user.id, org_id: orgId,
+            team_id: profile ? profile.active_team_id : null,
+            client_id: n.id, selector: n.selector,
             fallback_selector: n.fallbackSelector || null, tag: n.tag || null,
             text_snippet: n.textSnippet || null, category: n.category || 'seo',
-            status: n.status || 'decided', body: n.body, author: n.author || null,
+            status: n.status || 'decided', body: n.body,
+            author: (profile && profile.display_name) || null,
             viewport: n.viewport || {}, created_at: n.createdAt || new Date().toISOString(), deleted_at: null
           };
         });
@@ -302,7 +496,8 @@
         '<div class="top"><b>' + (i + 1) + '</b><span>' + esc(CATEGORY_LABELS[n.category] || n.category) + '</span>' +
         '<span>' + esc(n.status || '') + '</span><span>' + esc(vp) + '</span></div>' +
         '<div class="body">' + esc(n.body) + '</div><code>' + esc(n.selector) + '</code>' +
-        '<div class="top" style="margin-top:10px"><span>' + esc(n.author || 'unattributed') + '</span>' +
+        '<div class="top" style="margin-top:10px"><span><b>' + esc(n.author || 'Unknown') + '</b>' +
+        (n.team ? ' &middot; ' + esc(n.team) : '') + '</span>' +
         '<span>' + esc(n.createdAt ? new Date(n.createdAt).toLocaleString() : '') + '</span></div>';
       wrap.appendChild(d);
     });
@@ -323,13 +518,33 @@
   }
 
   function openCloud(page) {
+    var rows = [];
     sb.from('why_notes').select('*').eq('page_id', page.id).is('deleted_at', null)
       .order('created_at', { ascending: true })
       .then(function (res) {
-        if (res.error) { toast(res.error.message); return; }
-        showViewer(page.title || page.path, page.url, (res.data || []).map(fromRow), function () {
-          sb.from('why_pages').delete().eq('id', page.id).then(function () {
-            $('#viewer').hidden = true; renderLibrary(); toast('Page deleted from your account.');
+        if (res.error) { toast(res.error.message); return Promise.reject(res.error); }
+        rows = res.data || [];
+        var ids = rows.map(function (r) { return r.user_id; });
+        var teamIds = rows.map(function (r) { return r.team_id; }).filter(Boolean);
+        return Promise.all([
+          ids.length ? sb.from('why_profiles').select('user_id, display_name').in('user_id', ids) : { data: [] },
+          teamIds.length ? sb.from('why_teams').select('id, name').in('id', teamIds) : { data: [] }
+        ]);
+      })
+      .then(function (pair) {
+        var names = {}, teams = {};
+        ((pair[0] || {}).data || []).forEach(function (p) { names[p.user_id] = p.display_name; });
+        ((pair[1] || {}).data || []).forEach(function (t) { teams[t.id] = t.name; });
+        var notes = rows.map(function (r) {
+          var n = fromRow(r);
+          n.author = names[r.user_id] || n.author || 'Unknown';
+          n.team = r.team_id ? teams[r.team_id] : null;
+          return n;
+        });
+        showViewer(page.title || page.path, page.url, notes, function () {
+          sb.from('why_pages').delete().eq('id', page.id).then(function (r) {
+            if (r.error) { toast(r.error.message); return; }
+            $('#viewer').hidden = true; renderLibrary(); toast('Page deleted.');
           });
         });
       });
@@ -343,16 +558,16 @@
       var vp = n.viewport && n.viewport.width ? n.viewport.breakpoint + ' at ' + n.viewport.width + 'px' : 'viewport not recorded';
       out.push('## ' + (i + 1) + '. ' + (CATEGORY_LABELS[n.category] || n.category) + ', ' + (n.status || ''), '',
         '`' + n.selector + '`', '', n.body, '',
-        'Recorded by ' + (n.author || 'unattributed') + ', ' + vp +
+        'Recorded by ' + (n.author || 'Unknown') + (n.team ? ' (' + n.team + ')' : '') + ', ' + vp +
         (n.createdAt ? ', ' + new Date(n.createdAt).toLocaleDateString() : '') + '.', '');
     });
     return out.join('\n');
   }
 
   function toCSV(c) {
-    var rows = [['index', 'selector', 'category', 'status', 'note', 'author', 'breakpoint', 'viewport_width', 'created_at', 'url']];
+    var rows = [['index', 'selector', 'category', 'status', 'note', 'author', 'team', 'breakpoint', 'viewport_width', 'created_at', 'url']];
     c.notes.forEach(function (n, i) {
-      rows.push([i + 1, n.selector, n.category, n.status, n.body, n.author || '',
+      rows.push([i + 1, n.selector, n.category, n.status, n.body, n.author || '', n.team || '',
       n.viewport ? n.viewport.breakpoint : '', n.viewport ? n.viewport.width : '',
       n.createdAt || '', c.url || '']);
     });
@@ -401,9 +616,12 @@
     sb.auth.getUser().then(function (res) {
       user = (res.data && res.data.user) || null;
       if (user) {
-        ensureToken().then(function () { renderAccount(); renderLibrary(); });
+        ensureToken()
+          .then(loadWorkspace)
+          .then(function () { renderAccount(); renderWorkspace(); renderLibrary(); });
       } else {
-        token = null; renderAccount(); renderLibrary();
+        token = null; profile = null; orgs = []; myRole = null;
+        renderAccount(); renderWorkspace(); renderLibrary();
       }
     });
   }
