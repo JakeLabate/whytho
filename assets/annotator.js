@@ -9,7 +9,7 @@
 
   var CONSOLE_URL = 'https://whytho.jakelabate.com/';
   var SYNC_URL = 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync';
-  var VERSION = '1.2';
+  var VERSION = '1.3';
   var STORE_PREFIX = 'why:v1:';
   var CATEGORIES = [
     { id: 'seo', label: 'SEO', color: '#5b21b6' },
@@ -177,6 +177,7 @@
   })();
 
   var syncState = TOKEN ? 'syncing' : 'local';
+  var lastError = '';
 
   function api(action, extra) {
     var body = {
@@ -276,7 +277,7 @@
       setSync('cloud');
       render();
       if (localOnly.length) push(localOnly);
-    }, function (err) { setSync('offline', reason(err)); });
+    }, function (err) { lastError = reason(err); setSync('offline', 'Could not reach your account. ' + lastError); });
   }
 
   function push(notes) {
@@ -284,10 +285,11 @@
     setSync('syncing');
     api('push', { notes: notes }).then(function (res) {
       if (res.error) { setSync('error', res.error); return; }
+      lastError = '';
       notes.forEach(function (n) { n._synced = true; });
       Store.write(doc);
       setSync('cloud');
-    }, function (err) { setSync('offline', reason(err)); });
+    }, function (err) { lastError = reason(err); setSync('offline', 'Note saved here but not to your account. ' + lastError); });
   }
 
   function removeRemote(note) {
@@ -361,6 +363,7 @@
   .panel header h2 { margin: 0; font-size: 15px; font-weight: 650; flex: 1; }
   .icon { border: 0; background: transparent; font-size: 16px; cursor: pointer; color: #6b6480; padding: 4px 6px; border-radius: 6px; }
   .icon:hover { background: #efece7; }
+  .warn { background: #fff1f2; border-bottom: 1px solid #fecdd3; color: #9f1239; font-size: 12.5px; line-height: 1.5; padding: 10px 16px; }
   .filters { display: flex; gap: 6px; padding: 10px 16px; border-bottom: 1px solid #e6e1da; flex-wrap: wrap; }
   .chip { font-size: 12px; border: 1px solid #ddd7ce; background: #fff; border-radius: 999px; padding: 4px 9px; cursor: pointer; color: #4a4560; }
   .chip.on { background: #1c1a2e; color: #fff; border-color: #1c1a2e; }
@@ -421,7 +424,8 @@
     if (toastNode) toastNode.remove();
     toastNode = el('div', 'toast', esc(msg));
     layer.appendChild(toastNode);
-    setTimeout(function () { if (toastNode) { toastNode.remove(); toastNode = null; } }, 2600);
+    var hold = msg.length > 60 ? 9000 : 2600;
+    setTimeout(function () { if (toastNode) { toastNode.remove(); toastNode = null; } }, hold);
   }
 
   /* ---------- state ---------- */
@@ -560,11 +564,9 @@
     pick.addEventListener('click', function () { setPicking(!picking); });
     var list = el('button', '', (panelOpen ? 'Hide notes' : 'Show notes') + ' (' + doc.notes.length + ')');
     list.addEventListener('click', function () { panelOpen = !panelOpen; render(); });
-    var send = el('button', '', TOKEN ? 'Open console' : 'Send to console');
-    send.addEventListener('click', function () {
-      if (TOKEN) window.open(CONSOLE_URL, '_blank', 'noopener');
-      else sendToConsole();
-    });
+    var send = el('button', '', 'Send to console');
+    send.title = 'Open the console with these notes attached.';
+    send.addEventListener('click', sendToConsole);
     var off = el('button', '', 'Close');
     off.addEventListener('click', function () { api.off(); });
     var vpn = el('span', 'vp', vp.breakpoint + ' ' + vp.width + 'px');
@@ -616,6 +618,13 @@
     close.addEventListener('click', function () { panelOpen = false; render(); });
     h.appendChild(exp); h.appendChild(close);
     panel.appendChild(h);
+
+    if (lastError) {
+      var warn = el('div', 'warn');
+      warn.innerHTML = '<b>Not saved to your account.</b> ' + esc(lastError) +
+        ' Use <b>Send to console</b> to move these notes across instead.';
+      panel.appendChild(warn);
+    }
 
     var filters = el('div', 'filters');
     var all = el('button', 'chip' + (filter === 'all' ? ' on' : ''), 'All ' + doc.notes.length);

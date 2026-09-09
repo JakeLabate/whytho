@@ -65,8 +65,13 @@
       });
     });
     saveLocal(db);
-    if (user) uploadLocal(); else renderLibrary();
-    toast(added + ' note' + (added === 1 ? '' : 's') + ' imported.');
+    if (user) {
+      toast('Importing ' + added + ' note' + (added === 1 ? '' : 's') + ' into your account.');
+      uploadLocal();
+    } else {
+      renderLibrary();
+      toast(added + ' note' + (added === 1 ? '' : 's') + ' imported into this browser. Sign in to keep them on your account.');
+    }
   }
 
   /* ---------- account ---------- */
@@ -272,9 +277,11 @@
         return sb.from('why_notes').upsert(rows, { onConflict: 'user_id,client_id' });
       });
     });
-    Promise.all(jobs).then(function () {
+    Promise.all(jobs).then(function (results) {
+      var failed = results.filter(function (r) { return r && r.error; });
+      if (failed.length) { toast('Upload failed: ' + failed[0].error.message); renderLibrary(); return; }
       localStorage.removeItem(LOCAL_KEY);
-      toast('Local notes moved to your account.');
+      toast('Notes saved to your account.');
       renderLibrary();
     });
   }
