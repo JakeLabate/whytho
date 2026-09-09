@@ -117,7 +117,8 @@
         '<button class="btn small" type="submit" id="signin">Sign in</button>' +
         '<button class="btn quiet small" type="button" id="signup">Create account</button>' +
         '<button class="btn quiet small" type="button" id="magic">Email me a link</button>' +
-        '</div><p class="sub" id="auth-msg">Without an account, notes stay in this browser. If you have signed in to another of these apps with GitHub, use that button and skip the password.</p></form>';
+        '</div><p class="sub" id="auth-msg">Without an account, notes stay in this browser. If you have signed in to another of these apps with GitHub, use that button and skip the password.</p>' +
+        '<p class="sub note-small">If GitHub sends you to a different app, this domain is not in the Supabase redirect allowlist yet.</p></form>';
 
       $('#github').addEventListener('click', function () {
         sb.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: CFG.consoleUrl } })
