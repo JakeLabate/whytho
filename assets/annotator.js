@@ -1,14 +1,14 @@
-/* WhyWeb annotator engine
+/* Why annotator engine
    Loads into any page via bookmarklet or script tag. Self contained, no dependencies.
    All UI lives in a shadow root so host page CSS cannot reach it and it cannot leak out.
    Storage is localStorage on the annotated origin. Export moves notes to the console. */
 (function () {
   'use strict';
 
-  if (window.__whyweb__) { window.__whyweb__.toggle(); return; }
+  if (window.__why__) { window.__why__.toggle(); return; }
 
-  var CONSOLE_URL = 'https://whyweb.jakelabate.com/';
-  var STORE_PREFIX = 'whyweb:v1:';
+  var CONSOLE_URL = 'https://why.jakelabate.com/';
+  var STORE_PREFIX = 'why:v1:';
   var CATEGORIES = [
     { id: 'seo', label: 'SEO', color: '#5b21b6' },
     { id: 'content', label: 'Content', color: '#0f766e' },
@@ -60,7 +60,7 @@
     for (var i = 0; i < list.length; i++) {
       var c = list[i];
       if (!c) continue;
-      if (c.indexOf('whyweb') === 0) continue;
+      if (c.indexOf('why-') === 0) continue;
       if (/^(is-|has-|js-)/.test(c)) continue;
       if (/[0-9a-f]{6,}/i.test(c)) continue;      // hashed build classes
       if (/^css-[a-z0-9]+$/i.test(c)) continue;   // emotion / styled
@@ -86,7 +86,7 @@
     if (!el || el.nodeType !== 1) return '';
     if (el.id && isUnique('#' + cssEscape(el.id))) return '#' + cssEscape(el.id);
 
-    var hooks = ['data-whyweb-id', 'data-testid', 'data-test', 'data-qa', 'data-cy', 'name'];
+    var hooks = ['data-why-id', 'data-testid', 'data-test', 'data-qa', 'data-cy', 'name'];
     for (var h = 0; h < hooks.length; h++) {
       var v = el.getAttribute(hooks[h]);
       if (v) {
@@ -166,7 +166,7 @@
       try { doc = raw ? JSON.parse(raw) : null; } catch (e) { doc = null; }
       if (!doc || !doc.notes) {
         doc = {
-          schema: 'whyweb/1',
+          schema: 'why/1',
           url: location.href,
           origin: location.origin,
           path: location.pathname,
@@ -191,7 +191,7 @@
   /* ---------- shadow UI ---------- */
 
   var host = document.createElement('div');
-  host.setAttribute('data-whyweb-host', '');
+  host.setAttribute('data-why-host', '');
   host.style.cssText = 'all:initial;position:fixed;inset:0;z-index:2147483647;pointer-events:none;';
   (document.body || document.documentElement).appendChild(host);
   var root = host.attachShadow ? host.attachShadow({ mode: 'open' }) : host;
@@ -289,7 +289,7 @@
   var editing = null;      // note being composed or edited
   var pinNodes = [];
   var author = '';
-  try { author = localStorage.getItem('whyweb:author') || ''; } catch (e) { }
+  try { author = localStorage.getItem('why:author') || ''; } catch (e) { }
 
   function catOf(id) {
     for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].id === id) return CATEGORIES[i];
@@ -305,7 +305,7 @@
 
   function targetAt(x, y) {
     var t = document.elementFromPoint(x, y);
-    if (!t || t === document.documentElement || t.hasAttribute('data-whyweb-host')) return null;
+    if (!t || t === document.documentElement || t.hasAttribute('data-why-host')) return null;
     return t;
   }
 
@@ -408,7 +408,7 @@
     if (bar) bar.remove();
     bar = el('div', 'bar');
     var vp = viewportSnapshot();
-    var mark = el('span', 'mark', 'WhyWeb');
+    var mark = el('span', 'mark', 'Why');
     var pick = el('button', picking ? 'on' : '', picking ? 'Cancel selection' : 'Select an element');
     pick.addEventListener('click', function () { setPicking(!picking); });
     var list = el('button', '', (panelOpen ? 'Hide notes' : 'Show notes') + ' (' + doc.notes.length + ')');
@@ -562,7 +562,7 @@
       n.status = st.value;
       n.author = who.value.trim();
       author = n.author;
-      try { localStorage.setItem('whyweb:author', author); } catch (e) { }
+      try { localStorage.setItem('why:author', author); } catch (e) { }
       if (doc.notes.indexOf(n) === -1) doc.notes.push(n);
       Store.write(doc);
       editing = null;
@@ -596,7 +596,7 @@
 
   function payload() {
     return {
-      schema: 'whyweb/1',
+      schema: 'why/1',
       exportedAt: new Date().toISOString(),
       pages: [doc]
     };
@@ -633,7 +633,7 @@
     var blob = new Blob([JSON.stringify(payload(), null, 2)], { type: 'application/json' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'whyweb-' + location.hostname + '.json';
+    a.download = 'why-' + location.hostname + '.json';
     a.click();
     toast('Too large for a link, so it downloaded. Import the file in the console.');
   }
@@ -662,8 +662,8 @@
     export: payload,
     version: '1.0.0'
   };
-  window.__whyweb__ = api;
+  window.__why__ = api;
 
   render();
-  if (!doc.notes.length) toast('WhyWeb is on. Select an element to leave your first note.');
+  if (!doc.notes.length) toast('Why is on. Select an element to leave your first note.');
 })();

@@ -1,14 +1,14 @@
-# WhyWeb
+# Why
 
 A webpage annotator that records the reasoning behind element level decisions.
 
-Live at https://whyweb.jakelabate.com
+Live at https://why.jakelabate.com
 
 ## Why it exists
 
 Sites accumulate decisions. An H1 phrased a certain way, a nav item kept above the fold, a
 canonical pointing somewhere non obvious. Six months later nobody remembers which of those were
-deliberate. WhyWeb pins the reasoning to the element itself so the next person can read it.
+deliberate. Why pins the reasoning to the element itself so the next person can read it.
 
 ## How it works
 
@@ -21,13 +21,13 @@ deliberate. WhyWeb pins the reasoning to the element itself so the next person c
 - Every note stores the viewport it was taken at, so a note written at 390px is marked as a mobile
   observation rather than a global one.
 - Notes are saved to `localStorage` on the annotated origin. Send to console moves them to
-  https://whyweb.jakelabate.com for viewing and export.
+  https://why.jakelabate.com for viewing and export.
 - Exports: JSON, Markdown for pull requests and handover docs, and CSV.
 
 ## Constraints, stated plainly
 
 - No server. Notes live in the browser that made them and travel as JSON.
-- Third party sites cannot be framed and annotated remotely, so WhyWeb runs inside the page. You
+- Third party sites cannot be framed and annotated remotely, so Why runs inside the page. You
   need to be able to load the page yourself.
 - If a template changes underneath a note, the pin resolves to nothing and is shown as unresolved
   rather than silently reattaching to the wrong element.
@@ -36,7 +36,7 @@ deliberate. WhyWeb pins the reasoning to the element itself so the next person c
 
 ```json
 {
-  "schema": "whyweb/1",
+  "schema": "why/1",
   "pages": [{
     "url": "https://example.com/services/",
     "origin": "https://example.com",

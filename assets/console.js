@@ -1,12 +1,12 @@
-/* WhyWeb console
+/* Why console
    Receives note sets from the annotator, stores them in this browser, exports them. */
 (function () {
   'use strict';
 
-  var KEY = 'whyweb:console:v1';
-  var ORIGIN = location.origin === 'null' ? 'https://whyweb.jakelabate.com' : location.origin;
+  var KEY = 'why:console:v1';
+  var ORIGIN = location.origin === 'null' ? 'https://why.jakelabate.com' : location.origin;
   var SRC = ORIGIN.replace(/\/$/, '') + '/assets/annotator.js';
-  var BOOKMARKLET = "javascript:(function(){if(window.__whyweb__){window.__whyweb__.toggle();return}var s=document.createElement('script');s.src='" + SRC + "?t='+Date.now();document.body.appendChild(s)})()";
+  var BOOKMARKLET = "javascript:(function(){if(window.__why__){window.__why__.toggle();return}var s=document.createElement('script');s.src='" + SRC + "?t='+Date.now();document.body.appendChild(s)})()";
 
   var CATEGORY_LABELS = { seo: 'SEO', content: 'Content', tech: 'Technical', a11y: 'Accessibility', perf: 'Performance', ux: 'UX' };
   var CATEGORY_COLORS = { seo: '#5b21b6', content: '#0f766e', tech: '#b45309', a11y: '#be123c', perf: '#1d4ed8', ux: '#7c2d12' };
@@ -92,7 +92,7 @@
     var wrap = $('#library-list');
     wrap.innerHTML = '';
     if (!db.pages.length) {
-      wrap.innerHTML = '<div class="blank">Nothing here yet. Annotate a page, then choose <b>Send to console</b> in the WhyWeb toolbar and the notes land in this list.</div>';
+      wrap.innerHTML = '<div class="blank">Nothing here yet. Annotate a page, then choose <b>Send to console</b> in the Why toolbar and the notes land in this list.</div>';
       return;
     }
     db.pages
@@ -217,7 +217,7 @@
       var raw = $('#import-text').value.trim();
       if (!raw) { toast('Paste an export first.'); return; }
       try { merge(JSON.parse(raw)); $('#import-text').value = ''; }
-      catch (e) { toast('That is not valid WhyWeb JSON.'); }
+      catch (e) { toast('That is not valid Why JSON.'); }
     });
 
     $('#viewer-close').addEventListener('click', function () {
@@ -240,9 +240,9 @@
       btn.addEventListener('click', function () {
         if (!current) return;
         var kind = btn.getAttribute('data-export');
-        var stem = 'whyweb-' + (current.origin || '').replace(/^https?:\/\//, '').replace(/[^\w.-]/g, '-') +
+        var stem = 'why-' + (current.origin || '').replace(/^https?:\/\//, '').replace(/[^\w.-]/g, '-') +
           (current.path || '').replace(/[^\w.-]/g, '-');
-        if (kind === 'json') copy(JSON.stringify({ schema: 'whyweb/1', pages: [current] }, null, 2), 'JSON');
+        if (kind === 'json') copy(JSON.stringify({ schema: 'why/1', pages: [current] }, null, 2), 'JSON');
         if (kind === 'md') copy(toMarkdown(current), 'Markdown');
         if (kind === 'csv') { download(stem + '.csv', toCSV(current), 'text/csv'); toast('CSV downloaded.'); }
       });
@@ -260,7 +260,7 @@
       var r = new FileReader();
       r.onload = function () {
         try { merge(JSON.parse(r.result)); }
-        catch (err) { toast('That file is not a WhyWeb export.'); }
+        catch (err) { toast('That file is not a Why export.'); }
       };
       r.readAsText(f);
     });
