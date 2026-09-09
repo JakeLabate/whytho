@@ -855,6 +855,9 @@
     var base = $('#api-base');
     if (!base) return;
     base.textContent = apiBase();
+    var mcp = $('#mcp-url');
+    if (mcp) mcp.textContent = CFG.supabaseUrl.replace(/\/$/, '') + '/functions/v1/why-mcp/mcp';
+    renderConnections();
     document.querySelectorAll('.api-host').forEach(function (n) { n.textContent = apiBase(); });
     enhanceCode(document.querySelector('[data-view="api"]'));
 
@@ -887,6 +890,37 @@
           });
       });
     });
+  }
+
+  // Anything the person has connected through OAuth, so it can be taken away again.
+  function renderConnections() {
+    var box = $('#mcp-connections');
+    if (!box || !user) return;
+    sb.from('why_oauth_tokens').select('id, client_id, scope, created_at, last_used_at, revoked')
+      .order('created_at', { ascending: false })
+      .then(function (r) {
+        var rows = (!r.error && Array.isArray(r.data)) ? r.data.filter(function (x) { return !x.revoked; }) : [];
+        if (!rows.length) { box.innerHTML = ''; return; }
+        box.innerHTML = '<p class="ws-label" style="margin-top:18px">Connected applications</p><ul class="key-list">' +
+          rows.map(function (c) {
+            return '<li><div><b>Claude</b><span class="key-scope' + (c.scope.indexOf('write') > -1 ? ' write' : '') + '">' +
+              esc(c.scope.indexOf('write') > -1 ? 'read and write' : 'read only') + '</span>' +
+              '<br><span class="sub">connected ' + esc(new Date(c.created_at).toLocaleDateString()) +
+              (c.last_used_at ? ' &middot; last used ' + esc(new Date(c.last_used_at).toLocaleDateString()) : ' &middot; never used') +
+              '</span></div><button class="btn quiet small danger" data-disconnect="' + c.id + '">Disconnect</button></li>';
+          }).join('') + '</ul>';
+
+        box.querySelectorAll('[data-disconnect]').forEach(function (b) {
+          b.addEventListener('click', function () {
+            sb.from('why_oauth_tokens').update({ revoked: true }).eq('id', b.getAttribute('data-disconnect'))
+              .then(function (res) {
+                if (res.error) { toast(res.error.message); return; }
+                toast('Disconnected. Claude will need to be reconnected to reach your notes.');
+                renderConnections();
+              });
+          });
+        });
+      });
   }
 
   function createKey() {

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect to WhyTho</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/console.css?v=31">
+<style>
+  .consent { min-height: 100vh; display: grid; place-items: center; padding: 32px 20px; }
+  .consent-card { width: 100%; max-width: 460px; }
+  .consent-mark { font-family: var(--serif); font-weight: 700; font-size: 20px; margin: 0 0 24px; }
+  .consent h1 { font-family: var(--serif); font-weight: 600; font-size: 28px; line-height: 1.15; letter-spacing: -0.015em; margin: 0 0 10px; }
+  .consent .who-box { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 18px 0; }
+  .grant { display: grid; gap: 8px; margin: 18px 0; }
+  .grant label { display: flex; gap: 10px; align-items: flex-start; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; cursor: pointer; font-size: 14px; }
+  .grant label.on { border-color: var(--violet); background: #faf7ff; }
+  .grant input { margin-top: 3px; }
+  .grant b { display: block; }
+  .grant span { color: var(--ink-soft); font-size: 13px; }
+  .consent-actions { display: flex; gap: 8px; margin-top: 20px; }
+  .consent-actions .btn { flex: 1; text-align: center; }
+  .scopes { font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; }
+  .scopes li { margin-bottom: 5px; }
+</style>
+</head>
+<body>
+
+<div class="consent">
+  <div class="consent-card">
+    <p class="consent-mark">WhyTho</p>
+    <div id="stage"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/config.js?v=31"></script>
+<script src="assets/authorize.js?v=31"></script>
+</body>
+</html>
