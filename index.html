@@ -151,13 +151,35 @@
       </div>
 
       <div class="panel-card">
-        <h2>Endpoints</h2>
+        <h2>What it is for</h2>
+        <p>A note is only worth writing if it reaches the person about to change the element. The API is how that happens without anybody remembering to check an app.</p>
+        <ul class="key-points">
+          <li><strong>Turn documentation into a guardrail.</strong> A build can ask whether anything marked <em>do not change</em> still exists on the page, and fail when it does not. That is the difference between a record of a decision and a decision that defends itself.</li>
+          <li><strong>Brief a redesign from evidence.</strong> Pull every note under a template path and hand engineering the constraints before the work is scoped, rather than after the traffic moves.</li>
+          <li><strong>Report without copying.</strong> Client updates, coverage checks and audit appendices read from the same source the annotator wrote to, so they cannot drift out of date.</li>
+          <li><strong>Notice open questions.</strong> Notes with a <code>question</code> status are a queue. Query it daily and it stops being a queue nobody reads.</li>
+        </ul>
+      </div>
+
+      <div class="panel-card">
+        <h2>Quickstart</h2>
         <p>Base URL</p>
         <pre><code id="api-base"></code></pre>
-        <p>Every request needs your key in the Authorization header.</p>
+        <p>Authenticate with your key on every request. Confirm it works:</p>
         <pre><code>curl -H "Authorization: Bearer why_live_..." \
-  "<span class="api-host"></span>/notes?site=example.com&amp;status=do%20not%20change"</code></pre>
+  "<span class="api-host"></span>/me"</code></pre>
+        <pre><code>{
+  "ok": true,
+  "key_name": "Looker dashboard",
+  "scope": "organization",
+  "workspace": "Acme Retail",
+  "pages": 24
+}</code></pre>
+        <p class="sub">If that returns a workspace, everything below will work. A 401 means the key is wrong or revoked.</p>
+      </div>
 
+      <div class="panel-card">
+        <h2>Endpoints</h2>
         <table class="api-table">
           <thead><tr><th>Endpoint</th><th>Returns</th></tr></thead>
           <tbody>
@@ -192,7 +214,8 @@
       "origin": "https://example.com",
       "path": "/pricing/",
       "page_title": "Pricing",
-      "selector": "main > section.hero > h1",
+      "selector": "main &gt; section.hero &gt; h1",
+      "fallback_selector": "main &gt; section.hero &gt; h1",
       "element": "h1",
       "element_text": "Same day plumbing repair",
       "body": "Service plus city stays, the phrase carries the local demand.",
@@ -202,13 +225,116 @@
       "team": "SEO",
       "mentions": [{ "type": "team", "id": "...", "label": "Engineering" }],
       "viewport": { "width": 390, "breakpoint": "mobile" },
-      "created_at": "2026-09-09T13:00:00.000Z"
+      "created_at": "2026-09-09T13:00:00.000Z",
+      "updated_at": "2026-09-09T13:00:00.000Z"
     }
   ],
   "pagination": { "limit": 50, "offset": 0, "returned": 1 }
 }</code></pre>
+      </div>
 
-        <p class="sub">Read only by design. Notes are written by the annotator, where the selector and the viewport can be captured honestly, and nowhere else. A revoked key stops working immediately.</p>
+      <div class="panel-card">
+        <h2>Cookbook</h2>
+
+        <h3>1. Fail a build when a protected element disappears</h3>
+        <p>The strongest reason this API exists. Every note marked <code>do not change</code> names a selector. If the selector is gone from the built page, somebody removed something deliberate.</p>
+        <pre><code>// guard.mjs, run against your built HTML or a preview URL
+const KEY = process.env.WHYTHO_KEY;
+const res = await fetch(
+  "<span class="api-host"></span>/notes?status=do%20not%20change&amp;limit=200",
+  { headers: { Authorization: `Bearer ${KEY}` } }
+);
+const { data } = await res.json();
+
+let failed = 0;
+for (const note of data) {
+  const html = await (await fetch(note.url)).text();
+  // any selector matcher works here, this is the cheap version
+  const stillThere = html.includes(note.element_text ?? "");
+  if (!stillThere) {
+    console.error(`MISSING  ${note.url}\n  ${note.selector}\n  why: ${note.body}\n  set by: ${note.author}`);
+    failed++;
+  }
+}
+process.exit(failed ? 1 : 0);</code></pre>
+        <pre><code># .github/workflows/whytho.yml
+- name: Check protected elements
+  env:
+    WHYTHO_KEY: ${{ secrets.WHYTHO_KEY }}
+  run: node guard.mjs</code></pre>
+
+        <h3>2. Brief a redesign on one template</h3>
+        <p>Everything anyone has recorded under a path, oldest first, as a readable list.</p>
+        <pre><code>curl -s -H "Authorization: Bearer $WHYTHO_KEY" \
+  "<span class="api-host"></span>/notes?path=/products/&amp;order=oldest&amp;limit=200" \
+| jq -r '.data[] | "## \(.path)\n\(.body)\n`\(.selector)`\n\(.status) &middot; \(.author)\n"'</code></pre>
+
+        <h3>3. A daily digest of what changed</h3>
+        <p>New notes since yesterday, ready to post into Slack or a standup.</p>
+        <pre><code>SINCE=$(date -u -v-1d +%Y-%m-%dT%H:%M:%SZ)   # GNU: date -u -d '1 day ago' +...
+curl -s -H "Authorization: Bearer $WHYTHO_KEY" \
+  "<span class="api-host"></span>/notes?since=$SINCE" \
+| jq -r '.data[] | "\(.author) on \(.path): \(.body)"'</code></pre>
+
+        <h3>4. The open questions queue</h3>
+        <p>Notes somebody could not resolve alone. Left unqueried, this is where knowledge goes to die.</p>
+        <pre><code>curl -s -H "Authorization: Bearer $WHYTHO_KEY" \
+  "<span class="api-host"></span>/notes?status=question" \
+| jq -r '.data[] | "\(.url)\n  \(.body)\n  asked by \(.author)\n"'</code></pre>
+
+        <h3>5. Coverage: which important pages have no reasoning recorded</h3>
+        <p>Compare your sitemap against the pages that carry notes. The gap is your documentation debt.</p>
+        <pre><code>import requests, xml.etree.ElementTree as ET
+
+KEY = "why_live_..."
+API = "<span class="api-host"></span>"
+
+annotated = {p["url"] for p in requests.get(
+    f"{API}/pages", headers={"Authorization": f"Bearer {KEY}"}).json()["data"]}
+
+sitemap = ET.fromstring(requests.get("https://example.com/sitemap.xml").content)
+ns = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+live = {loc.text for loc in sitemap.findall(".//s:loc", ns)}
+
+for url in sorted(live - annotated):
+    print("no notes:", url)</code></pre>
+
+        <h3>6. Pull everything, for a spreadsheet or a warehouse</h3>
+        <p>Page through in blocks of 200 until a short page comes back.</p>
+        <pre><code>import requests, csv
+
+KEY, API = "why_live_...", "<span class="api-host"></span>"
+rows, offset = [], 0
+while True:
+    r = requests.get(f"{API}/notes", params={"limit": 200, "offset": offset},
+                     headers={"Authorization": f"Bearer {KEY}"}).json()
+    rows += r["data"]
+    if r["pagination"]["returned"] &lt; 200:
+        break
+    offset += 200
+
+with open("notes.csv", "w", newline="") as f:
+    w = csv.DictWriter(f, fieldnames=["url", "selector", "category", "status", "author", "team", "body"], extrasaction="ignore")
+    w.writeheader(); w.writerows(rows)</code></pre>
+
+        <h3>7. Show the reasoning inside your own tools</h3>
+        <p>The API allows browser requests, so an internal dashboard or a CMS sidebar can show the notes for whatever page an editor is looking at. Use a key scoped to the organization, and remember that a key in front-end code is readable by anyone who loads it, so only do this behind your own login.</p>
+        <pre><code>const notes = await fetch(
+  `<span class="api-host"></span>/notes?path=${encodeURIComponent(location.pathname)}`,
+  { headers: { Authorization: `Bearer ${KEY}` } }
+).then(r =&gt; r.json());</code></pre>
+      </div>
+
+      <div class="panel-card">
+        <h2>Behaviour worth knowing</h2>
+        <ul class="key-points">
+          <li><strong>Read only.</strong> Notes are written by the annotator, where the selector and viewport are captured from a real page. Nothing else can claim to have seen an element.</li>
+          <li><strong>One key, one workspace.</strong> A key made while you are in an organization reads that organization, including notes written by everyone in it. A key made outside one reads only your private notes.</li>
+          <li><strong>Deleted notes disappear.</strong> Deletes are soft in the database but the API never returns them.</li>
+          <li><strong>Filters combine.</strong> Every parameter narrows the result further, so <code>?site=x&amp;status=question&amp;since=...</code> is one query, not three.</li>
+          <li><strong>Keys are hashes.</strong> A lost key cannot be recovered, only revoked and replaced. Revoking takes effect on the next request.</li>
+          <li><strong>No hard rate limit yet.</strong> Be reasonable, cache what you poll, and pull in pages of 200 rather than in a loop of single requests.</li>
+        </ul>
       </div>
     </section>
 

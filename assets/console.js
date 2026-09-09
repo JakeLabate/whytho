@@ -566,7 +566,7 @@
     if (!b) return;
     var n = unreadCount();
     b.hidden = n === 0;
-    b.textContent = n > 99 ? '99+' : String(n);
+    b.textContent = n === 0 ? '' : (n > 99 ? '99+' : String(n));
   }
 
   function markRead(ids) {

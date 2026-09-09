@@ -356,3 +356,7 @@ body.doc main { max-width: 1080px; }
 #key-fresh pre { margin: 10px 0; }
 #key-fresh code { word-break: break-all; }
 .panel-card h3 { font-size: 15px; margin: 22px 0 6px; }
+
+.panel-card .key-points { padding-left: 20px; margin: 10px 0 0; }
+.panel-card .key-points li { margin-bottom: 10px; color: var(--ink-soft); font-size: 15px; }
+.panel-card .key-points strong { color: var(--ink); }
