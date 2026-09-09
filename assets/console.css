@@ -418,3 +418,7 @@ body.doc { background: var(--ground); }
   .doc-main { padding: 0 16px 70px; }
   .doc-main .hero { grid-template-columns: 1fr; gap: 28px; }
 }
+
+.key-scope { display: inline-block; margin-left: 8px; font-size: 10.5px; letter-spacing: .03em; background: var(--ground-alt); color: var(--ink-soft); border-radius: 999px; padding: 2px 8px; }
+.key-scope.write { background: #f3e8ff; color: #6b21a8; }
+#key-scope { flex: 0 0 auto; }

@@ -56,7 +56,11 @@ Supabase project `vvekkbboqqkxnlpmxazh`, shared with the portal and analytics ap
 - `why_notes` is unique on `(user_id, client_id)`, so pushes are idempotent and a note written
   offline syncs once, not twice.
 - Deletes are soft (`deleted_at`) so a sync cannot resurrect a removed note.
-- Edge function `why-sync` handles pull, push, delete, and whoami for token holders. It runs with
+- Edge function `why-sync` handles pull, push, delete, and whoami for token holders.
+- Edge function `why-api` is the public API: read with any key, write with a key that carries the
+  write scope. Writes are pinned to the key's user and workspace, so a key can never reach rows its
+  owner could not. Notes created through it are stored with `source = 'api'` rather than
+  `'annotator'`, because nothing verified that an element was ever on a page. It runs with
   `verify_jwt` off because it does its own token check, and it answers CORS from any origin, which
   is required for a bookmarklet.
 - The console authenticates normally with email and password and talks to PostgREST directly.

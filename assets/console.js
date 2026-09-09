@@ -866,8 +866,10 @@
 
     list.innerHTML = '<ul class="key-list">' + apiKeys.map(function (k) {
       var org = k.org_id ? (activeOrg() && k.org_id === activeOrg().id ? activeOrg().name : 'an organization') : 'Personal';
+      var write = Array.isArray(k.scopes) && k.scopes.indexOf('write') > -1;
       return '<li class="' + (k.revoked ? 'revoked' : '') + '">' +
         '<div><code>' + esc(k.key_prefix) + '\u2026</code> <b>' + esc(k.name || 'Unnamed key') + '</b>' +
+        '<span class="key-scope' + (write ? ' write' : '') + '">' + (write ? 'read and write' : 'read only') + '</span>' +
         '<br><span class="sub">' + esc(org) + ' &middot; created ' + esc(new Date(k.created_at).toLocaleDateString()) +
         (k.last_used_at ? ' &middot; last used ' + esc(new Date(k.last_used_at).toLocaleDateString()) : ' &middot; never used') +
         (k.revoked ? ' &middot; revoked' : '') + '</span></div>' +
@@ -889,6 +891,8 @@
 
   function createKey() {
     var name = $('#key-name').value.trim();
+    var wants = $('#key-scope') ? $('#key-scope').value : 'read';
+    var scopes = wants === 'write' ? ['read', 'write'] : ['read'];
     var raw = 'why_live_' + randomToken() + randomToken().slice(0, 8);
     hashKey(raw).then(function (hash) {
       return sb.from('why_api_keys').insert({
@@ -896,7 +900,8 @@
         org_id: profile ? profile.active_org_id : null,
         name: name || null,
         key_hash: hash,
-        key_prefix: raw.slice(0, 17)
+        key_prefix: raw.slice(0, 17),
+        scopes: scopes
       });
     }).then(function (r) {
       if (r && r.error) { toast(r.error.message); return; }

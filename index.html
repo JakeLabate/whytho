@@ -156,8 +156,13 @@
         <p class="sub">A key reads one workspace: whichever one you are in when you create it. Only a hash is stored, so a key is shown once and cannot be recovered later.</p>
         <div class="ws-row">
           <input id="key-name" placeholder="What is this key for? e.g. Looker dashboard">
+          <select id="key-scope">
+            <option value="read">Read only</option>
+            <option value="write">Read and write</option>
+          </select>
           <button class="btn small" id="key-create">Create key</button>
         </div>
+        <p class="sub">Read only is the right default. A write key can create, edit and delete notes, and manage teams, people and invites, so treat one like a password with your name on it.</p>
         <div id="key-fresh" hidden></div>
         <div id="key-list"></div>
       </div>
@@ -200,6 +205,43 @@
             <tr><td><code>GET /notes</code></td><td>The notes themselves, filtered and paginated.</td></tr>
           </tbody>
         </table>
+
+        <h3>Writing</h3>
+        <p>Any key created with <b>read and write</b> can do what you can do in the app. A read only key gets a 403 on anything that is not a GET.</p>
+        <table class="api-table">
+          <thead><tr><th>Endpoint</th><th>Does</th></tr></thead>
+          <tbody>
+            <tr><td><code>POST /notes</code></td><td>Create a note. Needs <code>url</code>, <code>selector</code> and <code>body</code>. The page is created if it does not exist yet.</td></tr>
+            <tr><td><code>PATCH /notes/{id}</code></td><td>Change the body, selector, category, status or applies_to of your own note.</td></tr>
+            <tr><td><code>DELETE /notes/{id}</code></td><td>Remove your own note.</td></tr>
+            <tr><td><code>PATCH /pages/{id}</code></td><td>Rename a page.</td></tr>
+            <tr><td><code>DELETE /pages/{id}</code></td><td>Delete a page and its notes. Admins only, in an organization.</td></tr>
+            <tr><td><code>POST /teams</code></td><td>Create a team. Admins only.</td></tr>
+            <tr><td><code>PATCH</code> / <code>DELETE /teams/{id}</code></td><td>Rename or remove a team. Admins only.</td></tr>
+            <tr><td><code>POST /teams/{id}/members</code></td><td>Add somebody to a team. Anyone can add themselves, admins can add others.</td></tr>
+            <tr><td><code>DELETE /teams/{id}/members/{user_id}</code></td><td>Remove somebody from a team.</td></tr>
+            <tr><td><code>GET /members</code></td><td>Everyone in the organization, with roles.</td></tr>
+            <tr><td><code>PATCH</code> / <code>DELETE /members/{user_id}</code></td><td>Change a role, or remove somebody. Admins only, and never the owner.</td></tr>
+            <tr><td><code>GET</code> / <code>POST /invites</code></td><td>List or mint an invite code, optionally bound to a team and a role.</td></tr>
+            <tr><td><code>DELETE /invites/{code}</code></td><td>Revoke an invite.</td></tr>
+            <tr><td><code>GET /notifications</code></td><td>Your inbox. Add <code>?unread=true</code> for only the new ones.</td></tr>
+            <tr><td><code>POST /notifications/read</code></td><td>Mark everything read, or pass <code>ids</code> for specific ones.</td></tr>
+          </tbody>
+        </table>
+
+        <pre><code data-lang="bash">curl -X POST "<span class="api-host"></span>/notes" \
+  -H "Authorization: Bearer $WHYTHO_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com/pricing/",
+    "selector": "main > section.hero > h1",
+    "body": "Service plus city stays, the phrase carries local demand. @Engineering keep it out of an image.",
+    "category": "seo",
+    "status": "do not change",
+    "applies_to": ["all"]
+  }'</code></pre>
+
+        <p class="sub">Mentions work the same as in the app. The database parses the body against your organization on write, so an @ in an API created note reaches the same inboxes.</p>
 
         <h3>Filters on /notes</h3>
         <table class="api-table">
@@ -329,7 +371,41 @@ with open("notes.csv", "w", newline="") as f:
     w = csv.DictWriter(f, fieldnames=["url", "selector", "category", "status", "author", "team", "body"], extrasaction="ignore")
     w.writeheader(); w.writerows(rows)</code></pre>
 
-        <h3>7. Show the reasoning inside your own tools</h3>
+        <h3>7. Migrate reasoning you already have</h3>
+        <p>Audit findings in a spreadsheet, decisions buried in a Notion page, comments in a codebase. Anything with a URL and a selector can become a note.</p>
+        <pre><code data-lang="python">import csv, requests
+
+KEY, API = "why_live_...", "<span class="api-host"></span>"
+head = {"Authorization": f"Bearer {KEY}", "Content-Type": "application/json"}
+
+for row in csv.DictReader(open("audit-findings.csv")):
+    requests.post(f"{API}/notes", headers=head, json={
+        "url": row["url"],
+        "selector": row["selector"],
+        "body": row["recommendation"],
+        "category": row.get("category", "seo"),
+        "status": "proposed",
+        "applies_to": ["all"],
+    })</code></pre>
+
+        <h3>8. Close the loop after a fix ships</h3>
+        <p>A proposal becomes a decision once the change is live, so let the deploy say so rather than waiting for somebody to remember.</p>
+        <pre><code data-lang="bash">curl -X PATCH "<span class="api-host"></span>/notes/$NOTE_ID" \
+  -H "Authorization: Bearer $WHYTHO_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "decided", "body": "Shipped in release 2026.09. Do not revert without asking."}'</code></pre>
+
+        <h3>9. Onboard a whole team in one script</h3>
+        <pre><code data-lang="bash"># make a team, then an invite code bound to it
+TEAM=$(curl -s -X POST "<span class="api-host"></span>/teams" \
+  -H "Authorization: Bearer $WHYTHO_KEY" -H "Content-Type: application/json" \
+  -d '{"name":"Engineering"}' | jq -r '.data.id')
+
+curl -s -X POST "<span class="api-host"></span>/invites" \
+  -H "Authorization: Bearer $WHYTHO_KEY" -H "Content-Type: application/json" \
+  -d "{\"team_id\":\"$TEAM\",\"role\":\"member\"}" | jq -r '.data.code'</code></pre>
+
+        <h3>10. Show the reasoning inside your own tools</h3>
         <p>The API allows browser requests, so an internal dashboard or a CMS sidebar can show the notes for whatever page an editor is looking at. Use a key scoped to the organization, and remember that a key in front-end code is readable by anyone who loads it, so only do this behind your own login.</p>
         <pre><code data-lang="javascript">const notes = await fetch(
   `<span class="api-host"></span>/notes?path=${encodeURIComponent(location.pathname)}`,
@@ -340,7 +416,8 @@ with open("notes.csv", "w", newline="") as f:
       <div class="panel-card">
         <h2>Behaviour worth knowing</h2>
         <ul class="key-points">
-          <li><strong>Read only.</strong> Notes are written by the annotator, where the selector and viewport are captured from a real page. Nothing else can claim to have seen an element.</li>
+          <li><strong>Every note records where it came from.</strong> Notes written by the annotator were captured against a real element at a real width. Notes written through the API were not, so they carry <code>"source": "api"</code> and you can filter on it with <code>?source=annotator</code>. Trust them accordingly.</li>
+          <li><strong>Writes are pinned to the key.</strong> A key can only touch what its owner could touch in the app. Only the author edits or deletes a note, only admins change teams, people and invites, and the owner of an organization cannot be removed by a key at all.</li>
           <li><strong>One key, one workspace.</strong> A key made while you are in an organization reads that organization, including notes written by everyone in it. A key made outside one reads only your private notes.</li>
           <li><strong>Deleted notes disappear.</strong> Deletes are soft in the database but the API never returns them.</li>
           <li><strong>Filters combine.</strong> Every parameter narrows the result further, so <code>?site=x&amp;status=question&amp;since=...</code> is one query, not three.</li>
