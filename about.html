@@ -70,7 +70,7 @@
     </ol>
   </section>
 
-  <section class="band alt">
+  <section class="band">
     <h2>Sharing</h2>
     <p>An organization holds teams, and a team holds people. A note written inside an organization is visible to every member, attributed to whoever wrote it and to their team. Notes written outside one stay private to the account that made them.</p>
     <p>Only the author can edit or delete their own note. Organization admins can remove a whole page. People join by invite code rather than by email invitation.</p>
@@ -78,6 +78,12 @@
   </section>
 
   <section class="band">
+    <h2>Getting the notes out</h2>
+    <p>Notes are queryable over a read only HTTP API, scoped by key to one workspace. Filter by site, path, category, status, author, team, free text or date, and page through the results. That covers feeding a dashboard, a CI check that fails when someone edits an element marked <em>do not change</em>, or a report, without anybody copying text by hand.</p>
+    <p>Create a key in the API tab of the app. Keys are stored as hashes and can be revoked.</p>
+  </section>
+
+  <section class="band alt">
     <h2>What it does not do</h2>
     <ul class="plain">
       <li>It cannot open someone else's site in a frame and annotate it. WhyTho runs in the page, so you need to be able to load the page yourself.</li>

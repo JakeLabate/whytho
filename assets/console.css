@@ -338,3 +338,21 @@ body.doc main { max-width: 1080px; }
 .export-list .sub { font-size: 13px; }
 .exports .danger { margin-left: auto; }
 @media (max-width: 700px) { .export-list { grid-template-columns: 1fr; gap: 6px; } .exports .danger { margin-left: 0; } }
+
+/* api */
+.api-table { width: 100%; border-collapse: collapse; margin: 10px 0 22px; font-size: 14px; }
+.api-table th { text-align: left; font-size: 12px; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--ink-soft); font-weight: 500; padding: 0 10px 8px 0; border-bottom: 1px solid var(--line); }
+.api-table td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.api-table td:first-child { white-space: nowrap; width: 1%; padding-right: 18px; }
+.api-table code { font-size: 12.5px; }
+.key-list { list-style: none; padding: 0; margin: 14px 0 0; }
+.key-list li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.key-list li > div { flex: 1; min-width: 0; }
+.key-list li button { margin-left: auto; }
+.key-list li.revoked { opacity: .55; }
+.key-fresh-note { background: #f4fff8; border: 1px solid #b8e6c9; border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+#key-fresh { margin: 14px 0; }
+#key-fresh pre { margin: 10px 0; }
+#key-fresh code { word-break: break-all; }
+.panel-card h3 { font-size: 15px; margin: 22px 0 6px; }

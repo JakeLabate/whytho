@@ -37,6 +37,7 @@
       <a href="#/inbox" data-tab="inbox">Inbox<span class="badge" id="inbox-badge" hidden></span></a>
       <a href="#/workspace" data-tab="workspace">Workspace</a>
       <a href="#/setup" data-tab="setup">Setup</a>
+      <a href="#/api" data-tab="api">API</a>
       <a href="#/account" data-tab="account">Account</a>
     </nav>
     <div class="app-who" id="app-who"></div>
@@ -69,16 +70,6 @@
         </div>
       </div>
       <div class="exports">
-        <button class="btn quiet small" data-export="md">Copy for a PR or doc</button>
-        <details class="export-more">
-          <summary>Other formats</summary>
-          <div class="export-list">
-            <button class="btn quiet small" data-export="csv">Download CSV</button>
-            <span class="sub">A sortable list for a client or a spreadsheet.</span>
-            <button class="btn quiet small" data-export="json">Copy JSON</button>
-            <span class="sub">Backup, or moving these notes to another account.</span>
-          </div>
-        </details>
         <button class="btn quiet small danger" id="viewer-delete">Delete this page</button>
       </div>
       <div id="viewer-notes"></div>
@@ -137,6 +128,87 @@
           <li>Write the reasoning, tag it, save. A numbered pin sticks to the element.</li>
           <li>The note saves to your account as you write it, signed with your name.</li>
         </ol>
+      </div>
+    </section>
+
+    <section class="view" data-view="api" hidden>
+      <div class="view-head">
+        <div>
+          <h1>API</h1>
+          <p class="sub">A read only HTTP API over your notes, so they can feed a dashboard, a CI check, or a report instead of being copied by hand.</p>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <h2>Your keys</h2>
+        <p class="sub">A key reads one workspace: whichever one you are in when you create it. Only a hash is stored, so a key is shown once and cannot be recovered later.</p>
+        <div class="ws-row">
+          <input id="key-name" placeholder="What is this key for? e.g. Looker dashboard">
+          <button class="btn small" id="key-create">Create key</button>
+        </div>
+        <div id="key-fresh" hidden></div>
+        <div id="key-list"></div>
+      </div>
+
+      <div class="panel-card">
+        <h2>Endpoints</h2>
+        <p>Base URL</p>
+        <pre><code id="api-base"></code></pre>
+        <p>Every request needs your key in the Authorization header.</p>
+        <pre><code>curl -H "Authorization: Bearer why_live_..." \
+  "<span class="api-host"></span>/notes?site=example.com&amp;status=do%20not%20change"</code></pre>
+
+        <table class="api-table">
+          <thead><tr><th>Endpoint</th><th>Returns</th></tr></thead>
+          <tbody>
+            <tr><td><code>GET /me</code></td><td>What the key can see: its workspace, and how many pages are in scope.</td></tr>
+            <tr><td><code>GET /pages</code></td><td>Every annotated page in that workspace, with a note count each.</td></tr>
+            <tr><td><code>GET /notes</code></td><td>The notes themselves, filtered and paginated.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Filters on /notes</h3>
+        <table class="api-table">
+          <tbody>
+            <tr><td><code>site</code></td><td>Match part of the hostname, e.g. <code>site=jimmiesplace.com</code></td></tr>
+            <tr><td><code>path</code></td><td>Path prefix, e.g. <code>path=/products/</code></td></tr>
+            <tr><td><code>category</code></td><td><code>seo</code>, <code>content</code>, <code>tech</code>, <code>a11y</code>, <code>perf</code>, <code>ux</code></td></tr>
+            <tr><td><code>status</code></td><td><code>decided</code>, <code>proposed</code>, <code>question</code>, <code>do not change</code></td></tr>
+            <tr><td><code>author</code></td><td>Exact display name, e.g. <code>author=Jake Labate</code></td></tr>
+            <tr><td><code>team</code></td><td>Exact team name</td></tr>
+            <tr><td><code>q</code></td><td>Free text inside the note body</td></tr>
+            <tr><td><code>since</code></td><td>ISO date, returns notes created on or after it</td></tr>
+            <tr><td><code>limit</code> / <code>offset</code></td><td>Page through results. Default 50, maximum 200.</td></tr>
+            <tr><td><code>order</code></td><td><code>oldest</code> to reverse the default newest first</td></tr>
+          </tbody>
+        </table>
+
+        <h3>A note looks like this</h3>
+        <pre><code>{
+  "data": [
+    {
+      "id": "n_abc123",
+      "url": "https://example.com/pricing/",
+      "origin": "https://example.com",
+      "path": "/pricing/",
+      "page_title": "Pricing",
+      "selector": "main > section.hero > h1",
+      "element": "h1",
+      "element_text": "Same day plumbing repair",
+      "body": "Service plus city stays, the phrase carries the local demand.",
+      "category": "seo",
+      "status": "do not change",
+      "author": "Jake Labate",
+      "team": "SEO",
+      "mentions": [{ "type": "team", "id": "...", "label": "Engineering" }],
+      "viewport": { "width": 390, "breakpoint": "mobile" },
+      "created_at": "2026-09-09T13:00:00.000Z"
+    }
+  ],
+  "pagination": { "limit": 50, "offset": 0, "returned": 1 }
+}</code></pre>
+
+        <p class="sub">Read only by design. Notes are written by the annotator, where the selector and the viewport can be captured honestly, and nowhere else. A revoked key stops working immediately.</p>
       </div>
     </section>
 

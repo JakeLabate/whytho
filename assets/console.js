@@ -84,7 +84,7 @@
 
   /* ---------- shell and routing ---------- */
 
-  var TABS = ['notes', 'inbox', 'workspace', 'setup', 'account'];
+  var TABS = ['notes', 'inbox', 'workspace', 'setup', 'api', 'account'];
 
   function currentRoute() {
     var m = (location.hash || '').match(/^#\/([a-z]+)/);
@@ -614,6 +614,87 @@
 
   /* ---------- library ---------- */
 
+  /* ---------- API keys ---------- */
+
+  var apiKeys = [];
+
+  function apiBase() {
+    return CFG.supabaseUrl.replace(/\/$/, '') + '/functions/v1/why-api';
+  }
+
+  function hashKey(text) {
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)).then(function (buf) {
+      return Array.prototype.map.call(new Uint8Array(buf), function (b) {
+        return ('0' + b.toString(16)).slice(-2);
+      }).join('');
+    });
+  }
+
+  function loadKeys() {
+    if (!user) { apiKeys = []; return Promise.resolve(); }
+    return sb.from('why_api_keys').select('*').order('created_at', { ascending: false })
+      .then(function (r) { apiKeys = (!r.error && Array.isArray(r.data)) ? r.data : []; });
+  }
+
+  function renderApi() {
+    var base = $('#api-base');
+    if (!base) return;
+    base.textContent = apiBase();
+    document.querySelectorAll('.api-host').forEach(function (n) { n.textContent = apiBase(); });
+
+    var list = $('#key-list');
+    if (!apiKeys.length) {
+      list.innerHTML = '<p class="sub">No keys yet.</p>';
+      return;
+    }
+
+    list.innerHTML = '<ul class="key-list">' + apiKeys.map(function (k) {
+      var org = k.org_id ? (activeOrg() && k.org_id === activeOrg().id ? activeOrg().name : 'an organization') : 'Personal';
+      return '<li class="' + (k.revoked ? 'revoked' : '') + '">' +
+        '<div><code>' + esc(k.key_prefix) + '\u2026</code> <b>' + esc(k.name || 'Unnamed key') + '</b>' +
+        '<br><span class="sub">' + esc(org) + ' &middot; created ' + esc(new Date(k.created_at).toLocaleDateString()) +
+        (k.last_used_at ? ' &middot; last used ' + esc(new Date(k.last_used_at).toLocaleDateString()) : ' &middot; never used') +
+        (k.revoked ? ' &middot; revoked' : '') + '</span></div>' +
+        (k.revoked ? '' : '<button class="btn quiet small danger" data-revoke="' + k.id + '">Revoke</button>') +
+        '</li>';
+    }).join('') + '</ul>';
+
+    list.querySelectorAll('[data-revoke]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        sb.from('why_api_keys').update({ revoked: true }).eq('id', b.getAttribute('data-revoke'))
+          .then(function (r) {
+            if (r.error) { toast(r.error.message); return; }
+            toast('Key revoked. It stops working immediately.');
+            loadKeys().then(renderApi);
+          });
+      });
+    });
+  }
+
+  function createKey() {
+    var name = $('#key-name').value.trim();
+    var raw = 'why_live_' + randomToken() + randomToken().slice(0, 8);
+    hashKey(raw).then(function (hash) {
+      return sb.from('why_api_keys').insert({
+        user_id: user.id,
+        org_id: profile ? profile.active_org_id : null,
+        name: name || null,
+        key_hash: hash,
+        key_prefix: raw.slice(0, 17)
+      });
+    }).then(function (r) {
+      if (r && r.error) { toast(r.error.message); return; }
+      $('#key-name').value = '';
+      var box = $('#key-fresh');
+      box.hidden = false;
+      box.innerHTML = '<p class="key-fresh-note"><b>Copy this now.</b> Only a hash is stored, so this is the one time it is shown.</p>' +
+        '<pre><code>' + esc(raw) + '</code></pre>' +
+        '<button class="btn small" id="key-copy">Copy key</button>';
+      $('#key-copy').addEventListener('click', function () { copy(raw, 'API key'); });
+      loadKeys().then(renderApi);
+    });
+  }
+
   /* ---------- the notes tree ----------
      Pages are grouped by site, then nested along their URL path, so /products/ sits
      above /products/whytho/. Every level carries the totals of everything beneath it. */
@@ -910,29 +991,7 @@
 
   /* ---------- exports ---------- */
 
-  function toMarkdown(c) {
-    var out = ['# Why this page is built this way', '', c.title ? '**' + c.title + '**' : '', c.url || '', ''];
-    c.notes.forEach(function (n, i) {
-      var vp = n.viewport && n.viewport.width ? n.viewport.breakpoint + ' at ' + n.viewport.width + 'px' : 'viewport not recorded';
-      out.push('## ' + (i + 1) + '. ' + (CATEGORY_LABELS[n.category] || n.category) + ', ' + (n.status || ''), '',
-        '`' + n.selector + '`', '', n.body, '',
-        'Recorded by ' + (n.author || 'Unknown') + (n.team ? ' (' + n.team + ')' : '') + ', ' + vp +
-        (n.createdAt ? ', ' + new Date(n.createdAt).toLocaleDateString() : '') + '.', '');
-    });
-    return out.join('\n');
-  }
 
-  function toCSV(c) {
-    var rows = [['index', 'selector', 'category', 'status', 'note', 'author', 'team', 'breakpoint', 'viewport_width', 'created_at', 'url']];
-    c.notes.forEach(function (n, i) {
-      rows.push([i + 1, n.selector, n.category, n.status, n.body, n.author || '', n.team || '',
-      n.viewport ? n.viewport.breakpoint : '', n.viewport ? n.viewport.width : '',
-      n.createdAt || '', c.url || '']);
-    });
-    return rows.map(function (r) {
-      return r.map(function (x) { return '"' + String(x == null ? '' : x).replace(/"/g, '""') + '"'; }).join(',');
-    }).join('\n');
-  }
 
   function copy(text, label) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -945,12 +1004,6 @@
     document.body.appendChild(ta); ta.select();
     try { document.execCommand('copy'); toast(label + ' copied.'); } catch (e) { toast('Copy failed in this browser.'); }
     ta.remove();
-  }
-  function download(name, text, type) {
-    var blob = new Blob([text], { type: type });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = name; a.click();
-    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
   }
 
   /* ---------- hash import from the annotator ---------- */
@@ -979,10 +1032,11 @@
           .then(loadWorkspace)
           .then(absorbLocal)
           .then(loadInbox)
+          .then(loadKeys)
           .then(function () {
             applyAuthState();
             renderWho(); renderAccount(); renderWorkspace(); renderSetup();
-            renderLibrary(); renderInbox();
+            renderLibrary(); renderInbox(); renderApi();
           });
       } else {
         token = null; profile = null; orgs = []; myRole = null;
@@ -1009,6 +1063,9 @@
 
     $('#viewer-close').addEventListener('click', function () { current = null; go('notes'); });
 
+    var keyBtn = $('#key-create');
+    if (keyBtn) keyBtn.addEventListener('click', createKey);
+
     $('#mark-all-read').addEventListener('click', function () {
       var ids = inbox.filter(function (n) { return !n.read_at; }).map(function (n) { return n.id; });
       if (!ids.length) { toast('Nothing unread.'); return; }
@@ -1016,16 +1073,6 @@
     });
     $('#viewer-delete').addEventListener('click', function () { if (current && current.remove) current.remove(); });
 
-    document.querySelectorAll('[data-export]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        if (!current) return;
-        var kind = btn.getAttribute('data-export');
-        var stem = 'why-' + String(current.url || 'page').replace(/^https?:\/\//, '').replace(/[^\w.-]/g, '-');
-        if (kind === 'json') copy(JSON.stringify({ schema: 'why/1', pages: [{ url: current.url, title: current.title, notes: current.notes }] }, null, 2), 'JSON');
-        if (kind === 'md') copy(toMarkdown(current), 'Markdown');
-        if (kind === 'csv') { download(stem + '.csv', toCSV(current), 'text/csv'); toast('CSV downloaded.'); }
-      });
-    });
 
     ['dragenter', 'dragover'].forEach(function (ev) {
       document.addEventListener(ev, function (e) { e.preventDefault(); document.body.classList.add('dragging'); });
