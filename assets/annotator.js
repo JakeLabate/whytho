@@ -9,7 +9,7 @@
 
   var CONSOLE_URL = 'https://whytho.jakelabate.com/';
   var SYNC_URL = 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync';
-  var VERSION = '2.0';
+  var VERSION = '2.1';
   var STORE_PREFIX = 'why:v1:';
   var CATEGORIES = [
     { id: 'seo', label: 'SEO', color: '#5b21b6' },
@@ -25,6 +25,16 @@
 
   function uid() {
     return 'n_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  // Mentions are rendered from the note body after escaping, so nothing injects markup.
+  function withMentions(text) {
+    var out = esc(text);
+    directory.slice().sort(function (a, b) { return b.label.length - a.label.length; }).forEach(function (d) {
+      var needle = '@' + esc(d.label);
+      out = out.split(needle).join('<span class="tagged">' + needle + '</span>');
+    });
+    return out;
   }
 
   function esc(s) {
@@ -179,6 +189,7 @@
   var syncState = TOKEN ? 'syncing' : 'local';
   var lastError = '';
   var identity = { author: '', org_name: null, team_id: null, org_id: null };
+  var directory = [];
 
   function syncRequest(action, extra) {
     var body = {
@@ -248,6 +259,7 @@
     identity.org_name = res.org_name || null;
     identity.org_id = res.org_id || null;
     identity.team_id = res.team_id || null;
+    if (Array.isArray(res.directory)) directory = res.directory;
   }
 
   function fromRow(r) {
@@ -414,6 +426,11 @@
   .card:hover { border-color: #c9c1b6; }
   .card .top { display: flex; gap: 8px; align-items: baseline; font-size: 11px; color: #6b6480; }
   .card .num { font-weight: 700; color: #1c1a2e; }
+  .mentions { position: absolute; left: 16px; right: 16px; bottom: 100%; background: #fff; border: 1px solid #ddd7ce; border-radius: 8px; box-shadow: 0 -6px 20px rgba(15,23,42,.12); overflow: hidden; margin-bottom: 6px; }
+  .mention { padding: 8px 11px; font-size: 13px; cursor: pointer; display: flex; gap: 8px; align-items: center; }
+  .mention.on, .mention:hover { background: #f3f0fb; }
+  .mention-kind { font-size: 10px; letter-spacing: .05em; text-transform: uppercase; color: #8a83a8; }
+  .tagged { color: #5b21b6; font-weight: 600; }
   .card .body { font-size: 14px; line-height: 1.5; margin: 6px 0 6px; white-space: pre-wrap; }
   .card code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; background: #f3f0eb; padding: 2px 5px; border-radius: 4px; word-break: break-all; color: #4a4560; display: inline-block; }
   .card .meta { font-size: 11px; color: #6b6480; }
@@ -694,7 +711,7 @@
       card.innerHTML =
         '<div class="top"><span class="num">' + idx + '</span><span>' + esc(catOf(n.category).label) + '</span>' +
         '<span>' + esc(n.status) + '</span><span style="margin-left:auto">' + esc(vpTxt) + '</span></div>' +
-        '<div class="body">' + esc(n.body) + '</div>' +
+        '<div class="body">' + withMentions(n.body) + '</div>' +
         '<code>' + esc(n.selector) + '</code>' +
         '<div class="top" style="margin-top:8px">' +
         '<span><b>' + esc(n.author || 'you') + '</b>' + (n.team ? ' &middot; ' + esc(n.team) : '') + '</span>' +
@@ -757,9 +774,73 @@
     composer.appendChild(target);
 
     var ta = document.createElement('textarea');
-    ta.placeholder = 'Why is this element the way it is? Note the decision, the constraint, and who to ask before changing it.';
+    ta.placeholder = directory.length
+      ? 'Why is this element the way it is? Type @ to tag a person or a team.'
+      : 'Why is this element the way it is? Note the decision, the constraint, and who to ask before changing it.';
     ta.value = n.body;
     composer.appendChild(ta);
+
+    var picker = el('div', 'mentions');
+    picker.style.display = 'none';
+    composer.appendChild(picker);
+
+    var pickIndex = 0, matches = [];
+
+    function tokenAtCaret() {
+      var upto = ta.value.slice(0, ta.selectionStart);
+      var at = upto.lastIndexOf('@');
+      if (at === -1) return null;
+      var frag = upto.slice(at + 1);
+      if (/\n/.test(frag) || frag.length > 40) return null;
+      return { at: at, frag: frag };
+    }
+
+    function closePicker() { picker.style.display = 'none'; matches = []; }
+
+    function refreshPicker() {
+      var tok = tokenAtCaret();
+      if (!tok || !directory.length) return closePicker();
+      var q = tok.frag.toLowerCase();
+      matches = directory.filter(function (d) {
+        return d.label.toLowerCase().indexOf(q) === 0 || d.label.toLowerCase().indexOf(' ' + q) > -1 || q === '';
+      }).slice(0, 6);
+      if (!matches.length) return closePicker();
+      pickIndex = 0;
+      paintPicker();
+      picker.style.display = 'block';
+    }
+
+    function paintPicker() {
+      picker.innerHTML = '';
+      matches.forEach(function (m, i) {
+        var row = el('div', 'mention' + (i === pickIndex ? ' on' : ''));
+        row.innerHTML = '<span class="mention-kind">' + (m.type === 'team' ? 'team' : 'person') + '</span>' + esc(m.label);
+        row.addEventListener('mousedown', function (e) { e.preventDefault(); choose(m); });
+        picker.appendChild(row);
+      });
+    }
+
+    function choose(m) {
+      var tok = tokenAtCaret();
+      if (!tok) return closePicker();
+      var before = ta.value.slice(0, tok.at);
+      var after = ta.value.slice(ta.selectionStart);
+      ta.value = before + '@' + m.label + ' ' + after;
+      var pos = (before + '@' + m.label + ' ').length;
+      ta.setSelectionRange(pos, pos);
+      ta.focus();
+      closePicker();
+    }
+
+    ta.addEventListener('input', refreshPicker);
+    ta.addEventListener('keydown', function (e) {
+      if (picker.style.display === 'none' || !matches.length) return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); pickIndex = (pickIndex + 1) % matches.length; paintPicker(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); pickIndex = (pickIndex - 1 + matches.length) % matches.length; paintPicker(); }
+      else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); choose(matches[pickIndex]); }
+      else if (e.key === 'Escape') { e.preventDefault(); closePicker(); }
+    });
+    ta.addEventListener('blur', closePicker);
 
     var row = el('div', 'row');
     var cat = document.createElement('select');

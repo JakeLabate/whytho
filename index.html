@@ -34,6 +34,7 @@
     <a class="app-mark" href="#/notes">WhyTho</a>
     <nav class="tabs" id="tabs">
       <a href="#/notes" data-tab="notes">Notes</a>
+      <a href="#/inbox" data-tab="inbox">Inbox<span class="badge" id="inbox-badge" hidden></span></a>
       <a href="#/workspace" data-tab="workspace">Workspace</a>
       <a href="#/setup" data-tab="setup">Setup</a>
       <a href="#/account" data-tab="account">Account</a>
@@ -74,6 +75,17 @@
         <button class="btn quiet small danger" id="viewer-delete">Delete this page</button>
       </div>
       <div id="viewer-notes"></div>
+    </section>
+
+    <section class="view" data-view="inbox" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Inbox</h1>
+          <p class="sub">Notes where you or one of your teams was tagged. Joining a team brings its history with it.</p>
+        </div>
+        <button class="btn quiet small" id="mark-all-read">Mark all as read</button>
+      </div>
+      <div id="inbox-list"></div>
     </section>
 
     <section class="view" data-view="workspace" hidden>

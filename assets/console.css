@@ -263,3 +263,20 @@ body.doc main { max-width: 1080px; }
   .tabs { order: 3; width: 100%; margin: 0 -14px; padding: 0 14px; }
   .app-body { padding: 24px 16px 80px; }
 }
+
+/* inbox */
+.badge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px;
+  background: var(--violet); color: #fff; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.view-head { display: flex; align-items: flex-start; gap: 16px; }
+.view-head > div { flex: 1; min-width: 0; }
+.notif { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer;
+  background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+.notif:hover { border-color: #c8bfd8; }
+.notif.unread { background: #faf7ff; border-color: #ddd2f2; }
+.notif-top { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-soft); }
+.notif-top b { color: var(--ink); }
+.notif-when { margin-left: auto; font-size: 12px; }
+.dot-unread { width: 7px; height: 7px; border-radius: 50%; background: var(--violet); flex: none; }
+.notif-body { font-size: 15px; margin: 7px 0; }
+.notif-foot { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tagged { color: var(--violet); font-weight: 600; }

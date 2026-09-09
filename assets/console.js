@@ -25,6 +25,12 @@
     });
   }
 
+  function highlight(text) {
+    return esc(text).replace(/@([A-Za-z0-9][A-Za-z0-9 ._-]{0,40})/g, function (whole) {
+      return '<span class="tagged">' + whole + '</span>';
+    });
+  }
+
   function toast(msg) {
     var t = $('#toast');
     t.textContent = msg;
@@ -79,7 +85,7 @@
 
   /* ---------- shell and routing ---------- */
 
-  var TABS = ['notes', 'workspace', 'setup', 'account'];
+  var TABS = ['notes', 'inbox', 'workspace', 'setup', 'account'];
 
   function currentRoute() {
     var m = (location.hash || '').match(/^#\/([a-z]+)/);
@@ -433,6 +439,73 @@
     }
   }
 
+  /* ---------- inbox ---------- */
+
+  var inbox = [];
+
+  function loadInbox() {
+    if (!user) { inbox = []; return Promise.resolve(); }
+    return sb.rpc('why_notifications_feed', { p_limit: 100 }).then(function (res) {
+      if (res.error) { inbox = []; return; }
+      inbox = res.data || [];
+    });
+  }
+
+  function unreadCount() {
+    return inbox.filter(function (n) { return !n.read_at; }).length;
+  }
+
+  function renderBadge() {
+    var b = $('#inbox-badge');
+    if (!b) return;
+    var n = unreadCount();
+    b.hidden = n === 0;
+    b.textContent = n > 99 ? '99+' : String(n);
+  }
+
+  function markRead(ids) {
+    if (!ids.length) return Promise.resolve();
+    var now = new Date().toISOString();
+    inbox.forEach(function (n) { if (ids.indexOf(n.id) > -1) n.read_at = now; });
+    renderBadge();
+    return sb.from('why_notifications').update({ read_at: now }).in('id', ids);
+  }
+
+  function renderInbox() {
+    var wrap = $('#inbox-list');
+    if (!wrap) return;
+    renderBadge();
+
+    if (!inbox.length) {
+      wrap.innerHTML = '<div class="blank">Nothing yet. When somebody types <b>@' +
+        esc((profile && profile.display_name) || 'your name') +
+        '</b> or the name of a team you are in, it arrives here.</div>';
+      return;
+    }
+
+    wrap.innerHTML = '';
+    inbox.forEach(function (n) {
+      var card = document.createElement('button');
+      card.className = 'notif' + (n.read_at ? '' : ' unread');
+      var why = n.via_team ? 'tagged <b>' + esc(n.via_team) + '</b>' : 'tagged <b>you</b>';
+      card.innerHTML =
+        '<div class="notif-top">' + (n.read_at ? '' : '<span class="dot-unread"></span>') +
+        '<b>' + esc(n.actor || 'Someone') + '</b> ' + why +
+        '<span class="notif-when">' + esc(new Date(n.created_at).toLocaleString()) + '</span></div>' +
+        '<div class="notif-body">' + esc(n.body) + '</div>' +
+        '<div class="notif-foot"><code>' + esc(n.selector || '') + '</code>' +
+        '<span class="sub">' + esc((n.origin || '').replace(/^https?:\/\//, '') + (n.path || '')) + '</span></div>';
+      card.addEventListener('click', function () {
+        markRead([n.id]);
+        if (!n.page_id) return;
+        sb.from('why_pages').select('*').eq('id', n.page_id).maybeSingle().then(function (r) {
+          if (r.data) openCloud(r.data);
+        });
+      });
+      wrap.appendChild(card);
+    });
+  }
+
   /* ---------- library ---------- */
 
   function renderLibrary() {
@@ -556,7 +629,7 @@
       d.innerHTML =
         '<div class="top"><b>' + (i + 1) + '</b><span>' + esc(CATEGORY_LABELS[n.category] || n.category) + '</span>' +
         '<span>' + esc(n.status || '') + '</span><span>' + esc(vp) + '</span></div>' +
-        '<div class="body">' + esc(n.body) + '</div><code>' + esc(n.selector) + '</code>' +
+        '<div class="body">' + highlight(n.body) + '</div><code>' + esc(n.selector) + '</code>' +
         '<div class="top" style="margin-top:10px"><span><b>' + esc(n.author || 'Unknown') + '</b>' +
         (n.team ? ' &middot; ' + esc(n.team) : '') + '</span>' +
         '<span>' + esc(n.createdAt ? new Date(n.createdAt).toLocaleString() : '') + '</span></div>';
@@ -679,9 +752,11 @@
       if (user) {
         ensureToken()
           .then(loadWorkspace)
+          .then(loadInbox)
           .then(function () {
             applyAuthState();
-            renderWho(); renderAccount(); renderWorkspace(); renderSetup(); renderLibrary();
+            renderWho(); renderAccount(); renderWorkspace(); renderSetup();
+            renderLibrary(); renderInbox();
           });
       } else {
         token = null; profile = null; orgs = []; myRole = null;
@@ -707,6 +782,12 @@
     });
 
     $('#viewer-close').addEventListener('click', function () { current = null; go('notes'); });
+
+    $('#mark-all-read').addEventListener('click', function () {
+      var ids = inbox.filter(function (n) { return !n.read_at; }).map(function (n) { return n.id; });
+      if (!ids.length) { toast('Nothing unread.'); return; }
+      markRead(ids).then(function () { renderInbox(); toast('Inbox cleared.'); });
+    });
     $('#viewer-delete').addEventListener('click', function () { if (current && current.remove) current.remove(); });
 
     document.querySelectorAll('[data-export]').forEach(function (btn) {
