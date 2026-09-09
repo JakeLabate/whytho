@@ -291,3 +291,9 @@ body.doc main { max-width: 1080px; }
 .warn-inline { background: #fff6f7; border: 1px solid #f5d3d9; color: #9f1239; border-radius: 8px;
   padding: 10px 12px; font-size: 14px; }
 @media (max-width: 700px) { .drag-hint { display: none; } }
+
+.guide-head { margin: 16px 0 4px; }
+.guide-head .ws-label { margin-bottom: 6px; }
+.guide-note { margin-top: 14px; max-width: 62ch; }
+#install-guide .steps li { font-size: 15px; }
+#drag-line[hidden] { display: none !important; }

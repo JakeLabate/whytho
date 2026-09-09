@@ -241,6 +241,112 @@
     });
   }
 
+  /* ---------- install instructions, per browser and per device ---------- */
+
+  var INSTALL = {
+    'chrome': {
+      label: 'Chrome', drag: true,
+      steps: [
+        'Show the bookmarks bar if it is hidden: <b>Cmd+Shift+B</b> on a Mac, <b>Ctrl+Shift+B</b> on Windows.',
+        'Drag the black pill above onto that bar. It becomes a bookmark called Annotate with WhyTho.',
+        'Open any page you want to document and click that bookmark. The toolbar appears at the bottom.'
+      ]
+    },
+    'edge': {
+      label: 'Edge', drag: true,
+      steps: [
+        'Show the favourites bar with <b>Ctrl+Shift+B</b>, or <b>Cmd+Shift+B</b> on a Mac.',
+        'Drag the black pill above onto that bar.',
+        'Open any page and click the bookmark to start annotating.'
+      ]
+    },
+    'firefox': {
+      label: 'Firefox', drag: true,
+      steps: [
+        'Show the bookmarks toolbar: <b>Cmd+Shift+B</b> on a Mac, <b>Ctrl+Shift+B</b> on Windows.',
+        'Drag the black pill above onto that toolbar.',
+        'Open any page and click the bookmark. If Firefox blocks it once, allow it and click again.'
+      ]
+    },
+    'safari': {
+      label: 'Safari', drag: true,
+      steps: [
+        'Turn on the favourites bar: <b>View</b> menu, then <b>Show Favourites Bar</b>, or press <b>Cmd+Shift+B</b>.',
+        'Drag the black pill above onto that bar.',
+        'Open any page and click the bookmark to start annotating.'
+      ]
+    },
+    'ios': {
+      label: 'iPhone or iPad', drag: false,
+      steps: [
+        'Tap <b>Copy the code</b> below.',
+        'In Safari, open any page, tap the share button, then <b>Add Bookmark</b>. Save it to Favourites.',
+        'Tap the bookmarks icon, then <b>Edit</b>, and open the bookmark you just made.',
+        'Rename it <b>WhyTho</b>, clear the address field, and paste the copied code in its place. Tap Done.',
+        'To use it: open a page, tap the bookmarks icon, and tap WhyTho. Safari will not run it from the address bar, only from a bookmark.'
+      ]
+    },
+    'android': {
+      label: 'Android', drag: false,
+      steps: [
+        'Tap <b>Copy the code</b> below.',
+        'In Chrome, open any page and tap the star to bookmark it.',
+        'Open <b>Bookmarks</b>, press and hold that bookmark, choose <b>Edit</b>.',
+        'Rename it <b>WhyTho</b> and replace the URL with the copied code. Save.',
+        'To use it: open a page, type <b>WhyTho</b> in the address bar, and tap the bookmark suggestion. Chrome on Android runs bookmarklets from the address bar, not from the bookmarks list.'
+      ]
+    }
+  };
+
+  function detectTarget() {
+    var ua = navigator.userAgent;
+    var touch = /iPhone|iPad|iPod/i.test(ua) || (/Android/i.test(ua) && /Mobile/i.test(ua));
+    if (/iPhone|iPad|iPod/i.test(ua)) return 'ios';
+    if (/Android/i.test(ua)) return 'android';
+    if (touch) return 'ios';
+    if (/Edg\//.test(ua)) return 'edge';
+    if (/Firefox\//.test(ua)) return 'firefox';
+    if (/Chrome\/|Chromium\//.test(ua)) return 'chrome';   // covers Brave, Arc, Opera
+    if (/Safari\//.test(ua)) return 'safari';
+    return 'chrome';
+  }
+
+  var installTarget = null;
+
+  function renderInstallGuide() {
+    var wrap = $('#install-guide');
+    if (!wrap) return;
+    if (!installTarget) installTarget = detectTarget();
+    var here = detectTarget();
+    var conf = INSTALL[installTarget] || INSTALL.chrome;
+
+    var chips = Object.keys(INSTALL).map(function (k) {
+      return '<button class="chip-btn' + (k === installTarget ? ' on' : '') + '" data-install="' + k + '">' +
+        esc(INSTALL[k].label) + (k === here ? ' <span class="sub">this device</span>' : '') + '</button>';
+    }).join('');
+
+    wrap.innerHTML =
+      '<div class="guide-head"><span class="ws-label">Instructions for</span><div class="ws-chips">' + chips + '</div></div>' +
+      '<ol class="steps">' + conf.steps.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ol>' +
+      '<button class="btn quiet small" id="copy-bookmarklet">Copy the code</button>' +
+      '<p class="sub guide-note">Installing this is per browser and per device. The bookmarklet you add on a laptop does not follow you to your phone, and the steps differ, so open the matching set above when you set up somewhere new. Your notes are on your account either way.</p>';
+
+    // The pill is only draggable where dragging exists.
+    var dragLine = $('#drag-line');
+    if (dragLine) dragLine.hidden = !conf.drag;
+
+    var bm = $('#bookmarklet');
+    if (bm) bm.setAttribute('href', bookmarkletCode());
+
+    wrap.querySelectorAll('[data-install]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        installTarget = b.getAttribute('data-install');
+        renderInstallGuide();
+      });
+    });
+    $('#copy-bookmarklet').addEventListener('click', function () { copy(bookmarkletCode(), 'Bookmarklet code'); });
+  }
+
   function renderSetup() {
     var bm = $('#bookmarklet');
     if (!bm) return;
@@ -250,6 +356,7 @@
       : 'Sign in first and this bookmarklet will carry your account with it. Right now it saves notes in the browser only.';
     $('#snippet').textContent = '<script src="' + CFG.consoleUrl.replace(/\/$/, '') + '/assets/annotator.js"' +
       (token ? ' data-why-token="' + token + '"' : '') + ' defer><\/script>';
+    renderInstallGuide();
   }
 
   /* ---------- workspace ---------- */
@@ -767,7 +874,6 @@
       e.preventDefault();
       toast('Drag this to your bookmarks bar, or copy the code.');
     });
-    $('#copy-bookmarklet').addEventListener('click', function () { copy(bookmarkletCode(), 'Bookmarklet'); });
     var snippetBtn = $('#copy-snippet');
     if (snippetBtn) snippetBtn.addEventListener('click', function () { copy($('#snippet').textContent, 'Script tag'); });
 
