@@ -211,3 +211,53 @@ footer p { font-size: 14px; color: var(--ink-soft); max-width: none; margin: 0; 
 .ws-more { margin-top: 16px; }
 .ws-more summary { cursor: pointer; font-size: 14px; color: var(--violet); }
 #invite-out code { font-family: ui-monospace, Menlo, monospace; background: var(--ground-alt); padding: 3px 7px; border-radius: 5px; }
+
+
+/* ---------- app shell ---------- */
+body.doc main { max-width: 1080px; }
+
+.gate { min-height: 100vh; display: grid; place-items: center; padding: 32px 20px; }
+.gate-card { width: 100%; max-width: 460px; }
+.gate-mark { font-family: var(--serif); font-weight: 700; font-size: 20px; margin: 0 0 26px; }
+.gate-title { font-family: var(--serif); font-weight: 600; font-size: clamp(28px, 5vw, 38px); line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 12px; max-width: none; }
+.gate-lede { color: var(--ink-soft); font-size: 16px; margin: 0 0 26px; }
+.gate-foot { font-size: 14px; color: var(--ink-soft); margin-top: 22px; }
+#signin-box .account-box, #signin-box { background: none; }
+
+.app { min-height: 100vh; }
+.app-bar {
+  display: flex; align-items: center; gap: 20px; padding: 0 24px;
+  border-bottom: 1px solid var(--line); background: var(--paper);
+  position: sticky; top: 0; z-index: 30;
+}
+.app-mark { font-family: var(--serif); font-weight: 700; font-size: 18px; color: var(--ink); text-decoration: none; padding: 16px 0; }
+.tabs { display: flex; gap: 4px; margin-right: auto; overflow-x: auto; }
+.tabs a {
+  font-size: 15px; color: var(--ink-soft); text-decoration: none; padding: 17px 12px 15px;
+  border-bottom: 2px solid transparent; white-space: nowrap;
+}
+.tabs a:hover { color: var(--ink); }
+.tabs a.on { color: var(--ink); border-bottom-color: var(--violet); font-weight: 500; }
+
+.who { display: flex; align-items: center; gap: 9px; text-decoration: none; color: var(--ink); padding: 8px 0; }
+.who-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex: none; }
+.who-initial { display: grid; place-items: center; background: var(--violet); color: #fff; font-size: 13px; font-weight: 600; }
+.who-text { display: flex; flex-direction: column; line-height: 1.25; font-size: 13px; }
+.who-text .sub { font-size: 11.5px; }
+
+.app-body { max-width: 900px; margin: 0 auto; padding: 34px 24px 90px; }
+.view-head { margin-bottom: 22px; }
+.view-head h1 { font-family: var(--serif); font-weight: 600; font-size: 30px; letter-spacing: -0.015em; margin: 0 0 6px; max-width: none; }
+.view-head .btn { margin-bottom: 14px; }
+.panel-card { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 22px; margin-bottom: 18px; }
+.panel-card h2 { font-size: 17px; margin: 0 0 8px; }
+.panel-card p { font-size: 15px; }
+.panel-card .steps { margin-top: 6px; }
+.app-foot { margin-top: 26px; font-size: 13px; }
+
+@media (max-width: 700px) {
+  .app-bar { padding: 0 14px; gap: 12px; flex-wrap: wrap; }
+  .app-mark { padding: 12px 0 6px; }
+  .tabs { order: 3; width: 100%; margin: 0 -14px; padding: 0 14px; }
+  .app-body { padding: 24px 16px 80px; }
+}

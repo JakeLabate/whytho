@@ -77,6 +77,58 @@
     }
   }
 
+  /* ---------- shell and routing ---------- */
+
+  var TABS = ['notes', 'workspace', 'setup', 'account'];
+
+  function currentRoute() {
+    var m = (location.hash || '').match(/^#\/([a-z]+)/);
+    return m && TABS.concat(['page']).indexOf(m[1]) > -1 ? m[1] : 'notes';
+  }
+
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(function (v) {
+      v.hidden = v.getAttribute('data-view') !== name;
+    });
+    document.querySelectorAll('#tabs a').forEach(function (a) {
+      var tab = a.getAttribute('data-tab');
+      a.classList.toggle('on', tab === name || (name === 'page' && tab === 'notes'));
+    });
+    if (window.scrollTo) window.scrollTo(0, 0);
+  }
+
+  function go(route) {
+    if (location.hash === '#/' + route) showView(route);
+    else location.hash = '#/' + route;
+  }
+
+  function route() {
+    if (!user) return;
+    var name = currentRoute();
+    if (name === 'page' && !current) name = 'notes';
+    showView(name);
+  }
+
+  function applyAuthState() {
+    $('#gate').hidden = !!user;
+    $('#app').hidden = !user;
+    if (user) route();
+  }
+
+  function renderWho() {
+    var box = $('#app-who');
+    if (!user) { box.innerHTML = ''; return; }
+    var org = activeOrg();
+    var name = (profile && profile.display_name) || user.email;
+    var initial = (name || '?').trim().charAt(0).toUpperCase();
+    var avatar = profile && profile.avatar_url
+      ? '<img class="who-avatar" src="' + esc(profile.avatar_url) + '" alt="">'
+      : '<span class="who-avatar who-initial">' + esc(initial) + '</span>';
+    box.innerHTML = '<a class="who" href="#/account">' + avatar +
+      '<span class="who-text"><b>' + esc(name) + '</b><span class="sub">' +
+      esc(org ? org.name : 'Personal') + '</span></span></a>';
+  }
+
   /* ---------- account ---------- */
 
   function randomToken() {
@@ -105,11 +157,12 @@
   }
 
   function renderAccount() {
-    var box = $('#account-box');
+    var box = user ? $('#account-box') : $('#signin-box');
     if (user) {
       box.innerHTML =
-        '<div class="acct-row"><div><b>' + esc(user.email) + '</b><br>' +
-        '<span class="sub">Notes on this account save from any browser you use.</span></div>' +
+        '<div class="acct-row"><div><b>' + esc((profile && profile.display_name) || user.email) + '</b><br>' +
+        '<span class="sub">' + esc(user.email) + '. Notes on this account save from any browser you use, ' +
+        'and are signed with this name.</span></div>' +
         '<button class="btn quiet small" id="signout">Sign out</button></div>';
       $('#signout').addEventListener('click', function () {
         sb.auth.signOut().then(function () { location.reload(); });
@@ -185,6 +238,7 @@
 
   function renderSetup() {
     var bm = $('#bookmarklet');
+    if (!bm) return;
     bm.setAttribute('href', bookmarkletCode());
     $('#bookmarklet-state').textContent = user && token
       ? 'This bookmarklet is tied to your account. Notes you take with it save to ' + user.email + '.'
@@ -383,6 +437,13 @@
 
   function renderLibrary() {
     var wrap = $('#library-list');
+    var scope = $('#notes-scope');
+    if (scope) {
+      var org = activeOrg();
+      scope.textContent = !user ? ''
+        : org ? 'Pages annotated in ' + org.name + ', by anyone in the organization.'
+              : 'Pages you have annotated. These are private to you.';
+    }
     if (!user) {
       var db = localDb();
       wrap.innerHTML = '';
@@ -501,9 +562,8 @@
         '<span>' + esc(n.createdAt ? new Date(n.createdAt).toLocaleString() : '') + '</span></div>';
       wrap.appendChild(d);
     });
-    $('#viewer').hidden = false;
     current = { title: title, url: url, notes: notes, remove: onDelete };
-    if ($('#viewer').scrollIntoView) $('#viewer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    go('page');
   }
 
   function openLocal(id) {
@@ -513,7 +573,7 @@
     showViewer(p.title || p.path, p.url, p.notes, function () {
       var d = localDb();
       d.pages = d.pages.filter(function (x) { return pageId(x) !== id; });
-      saveLocal(d); $('#viewer').hidden = true; renderLibrary(); toast('Page removed.');
+      saveLocal(d); current = null; go('notes'); renderLibrary(); toast('Page removed.');
     });
   }
 
@@ -544,7 +604,7 @@
         showViewer(page.title || page.path, page.url, notes, function () {
           sb.from('why_pages').delete().eq('id', page.id).then(function (r) {
             if (r.error) { toast(r.error.message); return; }
-            $('#viewer').hidden = true; renderLibrary(); toast('Page deleted.');
+            current = null; go('notes'); renderLibrary(); toast('Page deleted.');
           });
         });
       });
@@ -599,7 +659,7 @@
 
   function decodeHash() {
     var m = location.hash.match(/#import=(.+)$/);
-    if (!m) return;
+    if (!m) { route(); return; }
     var parsed = null;
     try {
       var b = m[1].replace(/-/g, '+').replace(/_/g, '/');
@@ -607,7 +667,8 @@
       parsed = JSON.parse(decodeURIComponent(escape(atob(b))));
     } catch (e) { toast('That import link could not be read.'); return; }
     mergeLocal(parsed);
-    history.replaceState(null, '', location.pathname + '#library');
+    history.replaceState(null, '', location.pathname + '#/notes');
+    route();
   }
 
   /* ---------- boot ---------- */
@@ -618,10 +679,14 @@
       if (user) {
         ensureToken()
           .then(loadWorkspace)
-          .then(function () { renderAccount(); renderWorkspace(); renderLibrary(); });
+          .then(function () {
+            applyAuthState();
+            renderWho(); renderAccount(); renderWorkspace(); renderSetup(); renderLibrary();
+          });
       } else {
         token = null; profile = null; orgs = []; myRole = null;
-        renderAccount(); renderWorkspace(); renderLibrary();
+        applyAuthState();
+        renderWho(); renderAccount(); renderLibrary();
       }
     });
   }
@@ -641,11 +706,7 @@
       catch (e) { toast('That is not valid WhyTho JSON.'); }
     });
 
-    $('#viewer-close').addEventListener('click', function () {
-      $('#viewer').hidden = true;
-      var lib = document.getElementById('library');
-      if (lib && lib.scrollIntoView) lib.scrollIntoView({ behavior: 'smooth' });
-    });
+    $('#viewer-close').addEventListener('click', function () { current = null; go('notes'); });
     $('#viewer-delete').addEventListener('click', function () { if (current && current.remove) current.remove(); });
 
     document.querySelectorAll('[data-export]').forEach(function (btn) {

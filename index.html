@@ -3,149 +3,136 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WhyTho: annotate a webpage with the reasoning behind it</title>
-<meta name="description" content="WhyTho lets you select any element on a page, on desktop or mobile, and record why it is the way it is. Built for SEO consultants, developers, and anyone who inherits someone else's decisions.">
+<title>WhyTho</title>
+<meta name="description" content="WhyTho records the reasoning behind the elements on a page. Sign in to see your notes, manage your organization, and get your bookmarklet.">
 <link rel="canonical" href="https://whytho.jakelabate.com/">
 <meta property="og:title" content="WhyTho">
-<meta property="og:description" content="Select an element on any page and record the reasoning behind it.">
+<meta property="og:description" content="Annotate any webpage with the reasoning behind it.">
 <meta property="og:url" content="https://whytho.jakelabate.com/">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/console.css">
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"WhyTho","applicationCategory":"DeveloperApplication","operatingSystem":"Any modern browser","url":"https://whytho.jakelabate.com/","description":"A webpage annotation tool that records the reasoning behind element level decisions.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"Jake Labate","jobTitle":"SEO Consultant","url":"https://www.jakelabate.com/"}}
-</script>
 </head>
 <body>
 
-<header class="masthead">
-  <a class="wordmark" href="./">WhyTho</a>
-  <nav>
-    <a href="#account">Account</a>
-    <a href="#workspace">Workspace</a>
-    <a href="#setup">Setup</a>
-    <a href="#library">Library</a>
-    <a href="demo.html">Demo page</a>
-  </nav>
-</header>
+<!-- Signed out: one job, get in -->
+<div id="gate" class="gate" hidden>
+  <div class="gate-card">
+    <p class="gate-mark">WhyTho</p>
+    <h1 class="gate-title">Every element is a decision somebody made.</h1>
+    <p class="gate-lede">Select anything on a page, on desktop or a phone, and record why it is that way. Notes carry the selector, the breakpoint, and your name automatically.</p>
+    <div id="signin-box"></div>
+    <p class="gate-foot"><a href="about.html">How it works</a> &middot; <a href="demo.html">Try the demo page</a></p>
+  </div>
+</div>
 
-<main>
+<!-- Signed in: the app -->
+<div id="app" class="app" hidden>
+  <header class="app-bar">
+    <a class="app-mark" href="#/notes">WhyTho</a>
+    <nav class="tabs" id="tabs">
+      <a href="#/notes" data-tab="notes">Notes</a>
+      <a href="#/workspace" data-tab="workspace">Workspace</a>
+      <a href="#/setup" data-tab="setup">Setup</a>
+      <a href="#/account" data-tab="account">Account</a>
+    </nav>
+    <div class="app-who" id="app-who"></div>
+  </header>
 
-  <section class="hero">
-    <div class="hero-copy">
-      <h1>Every element on a page is a decision somebody made.</h1>
-      <p class="lede">WhyTho pins the reasoning to the element itself. Turn it on over any page you can load, select something on desktop or on a phone, and write down why it is that way. The note carries the selector, the breakpoint it was taken at, and who made the call. Everything saves to your account, so the record follows you across machines rather than sitting in one browser.</p>
-      <div class="hero-actions">
-        <a class="btn" href="#account">Create an account</a>
-        <a class="btn quiet" href="demo.html">Try it on a demo page</a>
-      </div>
-    </div>
+  <main class="app-body">
 
-    <figure class="specimen" aria-label="Example of an annotated element">
-      <div class="specimen-page">
-        <div class="spec-nav"><span></span><span></span><span></span></div>
-        <div class="spec-target">
-          <span class="spec-pin">1</span>
-          <p class="spec-h">Same day plumbing repair in Waltham</p>
-          <p class="spec-sub">Licensed, insured, and answering the phone at 6am.</p>
+    <section class="view" data-view="notes" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Notes</h1>
+          <p class="sub" id="notes-scope"></p>
         </div>
-        <div class="spec-body"><span></span><span></span><span style="width:62%"></span></div>
       </div>
-      <figcaption class="spec-note">
-        <div class="spec-note-top"><b>1</b> <span>SEO</span> <span>decided</span> <span class="spec-vp">mobile 390px</span></div>
-        <p>H1 stays a service plus city string because the phrase carries the local demand. Marketing wanted the brand line here. It moves to the sub head instead.</p>
-        <code>main &gt; section.hero &gt; h1</code>
-        <div class="spec-note-top"><span>Jake Labate</span></div>
-      </figcaption>
-    </figure>
-  </section>
+      <div id="library-list"></div>
+      <details class="importer">
+        <summary>Import notes from a JSON export</summary>
+        <p class="sub">Paste an export, or drop a <code>.json</code> file anywhere on this page.</p>
+        <textarea id="import-text" placeholder='{"schema":"why/1","pages":[ ... ]}' spellcheck="false"></textarea>
+        <button class="btn small" id="import-btn">Import notes</button>
+      </details>
+    </section>
 
-  <section id="account" class="band">
-    <h2>Account</h2>
-    <p class="sub">Notes are stored per account and are visible only to you. Row level security enforces that in the database, not just in this page.</p>
-    <div id="account-box" class="account-box"></div>
-  </section>
+    <section class="view" data-view="page" hidden>
+      <div class="view-head">
+        <div>
+          <button class="btn quiet small" id="viewer-close">Back to notes</button>
+          <h1 id="viewer-title">Page</h1>
+          <p class="sub" id="viewer-url"></p>
+        </div>
+      </div>
+      <div class="exports">
+        <button class="btn small" data-export="json">Copy JSON</button>
+        <button class="btn small" data-export="md">Copy Markdown</button>
+        <button class="btn small" data-export="csv">Download CSV</button>
+        <button class="btn quiet small danger" id="viewer-delete">Delete this page</button>
+      </div>
+      <div id="viewer-notes"></div>
+    </section>
 
-  <section id="workspace" class="band alt">
-    <h2>Workspace</h2>
-    <p class="sub">An organization holds teams, and a team holds people. Notes written inside an organization are visible to everyone in it, attributed to whoever wrote them. Work outside one and your notes stay private to you.</p>
-    <div id="workspace-box" class="account-box"></div>
-  </section>
+    <section class="view" data-view="workspace" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Workspace</h1>
+          <p class="sub">An organization holds teams, and a team holds people. Notes written inside an organization are visible to everyone in it. Work outside one and they stay private to you.</p>
+        </div>
+      </div>
+      <div id="workspace-box" class="panel-card"></div>
+    </section>
 
-  <section id="setup" class="band">
-    <h2>Setup</h2>
-    <p>WhyTho runs inside the page you are annotating, so it works on staging, on production, and on anything behind a login. Two ways in.</p>
+    <section class="view" data-view="setup" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Setup</h1>
+          <p class="sub">WhyTho runs inside the page you are annotating, so it works on staging, on production, and behind a login.</p>
+        </div>
+      </div>
 
-    <div class="two">
-      <div class="card">
-        <h3>Bookmarklet</h3>
-        <p>Drag this to your bookmarks bar, then click it on any page. It carries your account with it, so notes save straight to the database. On mobile, copy the code and save it as a bookmark by hand.</p>
+      <div class="panel-card">
+        <h2>Your bookmarklet</h2>
+        <p>Drag this to your bookmarks bar, then click it on any page. On mobile, copy the code and save it as a bookmark by hand.</p>
         <p><a class="bookmarklet" id="bookmarklet" href="#">Annotate with WhyTho</a></p>
         <p class="sub" id="bookmarklet-state"></p>
         <button class="btn quiet small" id="copy-bookmarklet">Copy bookmarklet code</button>
       </div>
-      <div class="card">
-        <h3>Script tag</h3>
-        <p>Better for a staging environment you keep coming back to. The token in the tag is yours, so treat the snippet like a password.</p>
-        <pre><code id="snippet">&lt;script src="https://whytho.jakelabate.com/assets/annotator.js" defer&gt;&lt;/script&gt;</code></pre>
+
+      <div class="panel-card">
+        <h2>Script tag</h2>
+        <p>Better for a staging environment you keep returning to. The token in the tag is yours, so treat the snippet like a password.</p>
+        <pre><code id="snippet"></code></pre>
         <button class="btn quiet small" id="copy-snippet">Copy script tag</button>
       </div>
-    </div>
 
-    <ol class="steps">
-      <li>Load the page you want to document and start WhyTho.</li>
-      <li>Choose <b>Select an element</b>, then click it. On a phone, press and hold instead.</li>
-      <li>Write the reasoning, tag it, save. A numbered pin sticks to the element, signed with your name automatically.</li>
-      <li>The note saves to your account as you write it. Open the console from any browser to read, export, or delete it.</li>
-    </ol>
-  </section>
-
-  <section id="library" class="band">
-    <h2>Library</h2>
-    <p class="sub">Every page you have annotated on this account. Sign in above and they appear here from any browser.</p>
-    <div id="library-list"></div>
-
-    <details class="importer">
-      <summary>Import notes from a JSON export</summary>
-      <p>Paste an export, or drop a <code>.json</code> file anywhere on this page.</p>
-      <textarea id="import-text" placeholder='{"schema":"why/1","pages":[ ... ]}' spellcheck="false"></textarea>
-      <button class="btn small" id="import-btn">Import notes</button>
-    </details>
-  </section>
-
-  <section id="viewer" class="band alt" hidden>
-    <div class="viewer-head">
-      <div>
-        <h2 id="viewer-title">Page</h2>
-        <p class="sub" id="viewer-url"></p>
+      <div class="panel-card">
+        <h2>Then</h2>
+        <ol class="steps">
+          <li>Load the page you want to document and click the bookmarklet.</li>
+          <li>Choose <b>Select an element</b>, then click it. On a phone, press and hold instead.</li>
+          <li>Write the reasoning, tag it, save. A numbered pin sticks to the element.</li>
+          <li>The note saves to your account as you write it, signed with your name.</li>
+        </ol>
       </div>
-      <button class="btn quiet small" id="viewer-close">Back to library</button>
-    </div>
-    <div class="exports">
-      <button class="btn small" data-export="json">Copy JSON</button>
-      <button class="btn small" data-export="md">Copy Markdown</button>
-      <button class="btn small" data-export="csv">Download CSV</button>
-      <button class="btn quiet small danger" id="viewer-delete">Delete this page</button>
-    </div>
-    <div id="viewer-notes"></div>
-  </section>
+    </section>
 
-  <section class="band alt">
-    <h2>What it does not do</h2>
-    <ul class="plain">
-      <li>It cannot open someone else's site in a frame and annotate it. Most sites refuse to be framed, so WhyTho runs in the page instead. That means you need to be able to load the page yourself.</li>
-      <li>Sharing is by organization, not by link. Anyone you invite sees every note written in that organization, attributed to whoever wrote it. Work outside an organization and your notes stay private to you.</li>
-      <li>Selectors are recorded as written at the time. If a template changes underneath a note, the pin shows as unresolved rather than silently pointing at the wrong thing.</li>
-    </ul>
-  </section>
+    <section class="view" data-view="account" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Account</h1>
+          <p class="sub">Your name and picture come from however you signed in, and are used to attribute your notes.</p>
+        </div>
+      </div>
+      <div id="account-box" class="panel-card"></div>
+      <p class="sub app-foot"><a href="about.html">How WhyTho works</a> &middot; <a href="https://github.com/JakeLabate/whytho">Source</a> &middot; Built by Jake Labate, SEO Consultant</p>
+    </section>
 
-</main>
-
-<footer>
-  <p>WhyTho, built by Jake Labate, SEO Consultant. <a href="https://www.jakelabate.com/">jakelabate.com</a></p>
-</footer>
+  </main>
+</div>
 
 <div id="toast" class="toast" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

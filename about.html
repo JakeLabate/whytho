@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How WhyTho works</title>
+<meta name="description" content="WhyTho lets you select any element on a page, on desktop or mobile, and record why it is the way it is. Built for SEO consultants, developers, and anyone who inherits someone else's decisions.">
+<link rel="canonical" href="https://whytho.jakelabate.com/about.html">
+<meta property="og:title" content="How WhyTho works">
+<meta property="og:description" content="Select an element on any page and record the reasoning behind it.">
+<meta property="og:url" content="https://whytho.jakelabate.com/about.html">
+<meta property="og:type" content="article">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/console.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"WhyTho","applicationCategory":"DeveloperApplication","operatingSystem":"Any modern browser","url":"https://whytho.jakelabate.com/","description":"A webpage annotation tool that records the reasoning behind element level decisions.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"Jake Labate","jobTitle":"SEO Consultant","url":"https://www.jakelabate.com/"}}
+</script>
+</head>
+<body class="doc">
+
+<header class="masthead">
+  <a class="wordmark" href="./">WhyTho</a>
+  <nav>
+    <a href="demo.html">Demo page</a>
+    <a href="./">Open the app</a>
+  </nav>
+</header>
+
+<main>
+
+  <section class="hero">
+    <div class="hero-copy">
+      <h1>Every element on a page is a decision somebody made.</h1>
+      <p class="lede">WhyTho pins the reasoning to the element itself. Turn it on over any page you can load, select something on desktop or on a phone, and write down why it is that way. The note carries the selector, the breakpoint it was taken at, and who made the call.</p>
+      <div class="hero-actions">
+        <a class="btn" href="./">Open the app</a>
+        <a class="btn quiet" href="demo.html">Try it on a demo page</a>
+      </div>
+    </div>
+
+    <figure class="specimen" aria-label="Example of an annotated element">
+      <div class="specimen-page">
+        <div class="spec-nav"><span></span><span></span><span></span></div>
+        <div class="spec-target">
+          <span class="spec-pin">1</span>
+          <p class="spec-h">Same day plumbing repair in Waltham</p>
+          <p class="spec-sub">Licensed, insured, and answering the phone at 6am.</p>
+        </div>
+        <div class="spec-body"><span></span><span></span><span style="width:62%"></span></div>
+      </div>
+      <figcaption class="spec-note">
+        <div class="spec-note-top"><b>1</b> <span>SEO</span> <span>decided</span> <span class="spec-vp">mobile 390px</span></div>
+        <p>H1 stays a service plus city string because the phrase carries the local demand. Marketing wanted the brand line here. It moves to the sub head instead.</p>
+        <code>main &gt; section.hero &gt; h1</code>
+        <div class="spec-note-top"><span>Jake Labate</span></div>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section class="band">
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li>Sign in and drag your bookmarklet to the bookmarks bar, or drop the script tag on a staging site.</li>
+      <li>Load any page and start WhyTho. It runs inside the page rather than framing it, because almost every site refuses to be framed.</li>
+      <li>Select an element. Click on desktop, press and hold on touch. The selector prefers meaning over position: an id, then a test hook such as <code>data-testid</code>, then a stable class path, and only then <code>nth-of-type</code>.</li>
+      <li>Write the reasoning, pick a category and a status, and save. Your name is attached automatically from your account.</li>
+      <li>Read, export or delete it later from any browser you sign in on.</li>
+    </ol>
+  </section>
+
+  <section class="band alt">
+    <h2>Sharing</h2>
+    <p>An organization holds teams, and a team holds people. A note written inside an organization is visible to every member, attributed to whoever wrote it and to their team. Notes written outside one stay private to the account that made them.</p>
+    <p>Only the author can edit or delete their own note. Organization admins can remove a whole page. People join by invite code rather than by email invitation.</p>
+  </section>
+
+  <section class="band">
+    <h2>What it does not do</h2>
+    <ul class="plain">
+      <li>It cannot open someone else's site in a frame and annotate it. WhyTho runs in the page, so you need to be able to load the page yourself.</li>
+      <li>It is not a comment system. No threading, no mentions, no review workflow. A note is a record, not a conversation.</li>
+      <li>Teams label who wrote a note, they do not yet restrict who can read it. Everything inside an organization is visible org wide.</li>
+      <li>Selectors are recorded as written at the time. If a template changes underneath a note, the pin is shown as unresolved rather than silently pointing at the wrong element.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <p>WhyTho, built by Jake Labate, SEO Consultant. <a href="https://www.jakelabate.com/">jakelabate.com</a></p>
+</footer>
+
+</body>
+</html>
