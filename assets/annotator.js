@@ -9,7 +9,15 @@
 
   var CONSOLE_URL = 'https://whytho.jakelabate.com/';
   var SYNC_URL = 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync';
-  var VERSION = '2.2';
+  var VERSION = '3.0';
+
+  var SVG = {
+    cursor: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 1.5l9.5 5.6-4.1 1-2.2 4z"/></svg>',
+    close: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path stroke="currentColor" stroke-width="1.7" fill="none" d="M4 4l8 8M12 4l-8 8"/></svg>',
+    list: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path stroke="currentColor" stroke-width="1.6" fill="none" d="M2.5 4h11M2.5 8h11M2.5 12h7"/></svg>',
+    more: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><circle fill="currentColor" cx="3" cy="8" r="1.4"/><circle fill="currentColor" cx="8" cy="8" r="1.4"/><circle fill="currentColor" cx="13" cy="8" r="1.4"/></svg>',
+    trash: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path stroke="currentColor" stroke-width="1.4" fill="none" d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8h5.8l.6-8M6.7 7v3.4M9.3 7v3.4"/></svg>'
+  };
   var STORE_PREFIX = 'why:v1:';
   var CATEGORIES = [
     { id: 'seo', label: 'SEO', color: '#5b21b6' },
@@ -400,16 +408,77 @@
   .pin.dim { opacity: .35; }
   .pin.orphan { background: #64748b !important; }
 
-  .bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; pointer-events: auto; display: flex; gap: 6px; align-items: center; background: #1e1b31; color: #ede9fe; padding: 7px; border-radius: 10px; box-shadow: 0 10px 30px rgba(15,23,42,.4); }
-  .bar button { font: inherit; font-size: 13px; border: 0; background: #2e2a48; color: #ede9fe; padding: 8px 11px; border-radius: 7px; cursor: pointer; }
+  .bar {
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px;
+    pointer-events: auto; display: flex; align-items: center; gap: 4px;
+    height: 44px; padding: 0 8px; background: #1e1b31; border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(15,23,42,.4); white-space: nowrap;
+  }
+  .bar .mark { font-size: 12px; color: #a78bfa; padding: 0 8px; cursor: pointer; letter-spacing: .01em; }
+  .bar .sep { width: 1px; height: 18px; background: #3d3760; margin: 0 2px; }
+  .bar button {
+    font: inherit; border: 0; cursor: pointer; background: #2e2a48; color: #ede9fe;
+    height: 30px; border-radius: 8px; display: inline-flex; align-items: center;
+    justify-content: center; gap: 6px; padding: 0 10px; font-size: 12.5px; line-height: 1;
+  }
   .bar button:hover { background: #3d3760; }
-  .bar button.on { background: #7c3aed; color: #fff; }
-  .bar .mark { font-size: 12px; letter-spacing: .04em; color: #a78bfa; padding: 0 8px 0 4px; }
-  .bar .vp { font-size: 11px; color: #8b83b8; padding-right: 4px; }
-  .bar .acct { font-size: 11px; padding: 4px 8px; border-radius: 999px; background: #2e2a48; color: #a5a0c4; white-space: nowrap; }
-  .bar .acct.cloud { background: #1f3a2e; color: #6ee7b7; }
-  .bar .acct.syncing { background: #2e2a48; color: #c4b5fd; }
-  .bar .acct.offline, .bar .acct.error { background: #3b2230; color: #fda4af; }
+  .bar .b-primary { min-width: 92px; }
+  .bar .b-primary.on { background: #7c3aed; color: #fff; }
+  .bar .b-icon { min-width: 34px; padding: 0 9px; }
+  .bar .b-icon.on { background: #3d3760; }
+  .bar .b-icon .num { font-variant-numeric: tabular-nums; min-width: 8px; text-align: center; }
+  .bar .ico { display: inline-flex; }
+  .bar .b-dot { min-width: 30px; background: transparent; }
+  .bar .b-dot:hover { background: #2e2a48; }
+  .bar .b-dot .dot { width: 8px; height: 8px; border-radius: 50%; background: #64748b; }
+  .bar .b-dot.ok .dot { background: #34d399; }
+  .bar .b-dot.busy .dot { background: #c4b5fd; }
+  .bar .b-dot.bad .dot { background: #fb7185; }
+  .bar .b-dot.idle .dot { background: #8b83b8; }
+
+  .menu {
+    position: absolute; bottom: 52px; right: 4px; min-width: 190px; background: #26223f;
+    border: 1px solid #3d3760; border-radius: 10px; padding: 5px; overflow: hidden;
+  }
+  .menu-item {
+    display: block; width: 100%; text-align: left; font-size: 12.5px; color: #ede9fe;
+    background: transparent; border: 0; border-radius: 7px; padding: 8px 10px; cursor: pointer;
+  }
+  .menu-item:hover { background: #3d3760; }
+  .menu-note { color: #8b83b8; font-size: 11.5px; cursor: default; }
+  .menu-note:hover { background: transparent; }
+
+  .pop {
+    position: fixed; width: 320px; background: #fff; color: #1c1a2e; pointer-events: auto;
+    border: 1px solid #ddd7ce; border-radius: 12px; box-shadow: 0 12px 34px rgba(15,23,42,.22);
+    padding: 12px 13px 11px;
+  }
+  .pop.sheet { width: auto; border-radius: 14px 14px 0 0; border-bottom: 0; }
+  .pop-head { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+  .pop-tag { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #6b6480; }
+  .pop-head code {
+    font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; color: #4a4560;
+    background: #f3f0eb; padding: 2px 6px; border-radius: 4px;
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .pop-x { border: 0; background: transparent; color: #6b6480; cursor: pointer; padding: 2px; display: flex; }
+  .pop textarea {
+    width: 100%; min-height: 86px; font: inherit; font-size: 14px; line-height: 1.5;
+    padding: 9px 10px; border: 1px solid #ddd7ce; border-radius: 8px; resize: vertical; color: #1c1a2e;
+  }
+  .pop-row { display: flex; gap: 7px; margin-top: 8px; }
+  .pop-row select {
+    flex: 1; min-width: 0; font: inherit; font-size: 12.5px; height: 30px; padding: 0 8px;
+    border: 1px solid #ddd7ce; border-radius: 7px; background: #fff; color: #1c1a2e;
+  }
+  .pop-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .pop-by-inline { font-size: 11.5px; color: #6b6480; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pop-del { border: 1px solid #ddd7ce; background: #fff; color: #be123c; border-radius: 7px; height: 30px; width: 32px; display: grid; place-items: center; cursor: pointer; }
+  .pop-save { border: 0; background: #5b21b6; color: #fff; font: inherit; font-size: 13px; font-weight: 600; height: 30px; padding: 0 14px; border-radius: 7px; cursor: pointer; min-width: 86px; }
+  .pop-save:hover { background: #4c1d95; }
+  .pop-read { font-size: 14px; line-height: 1.55; white-space: pre-wrap; }
+  .pop-by { font-size: 11.5px; color: #6b6480; margin-top: 9px; }
+  .pop .mentions { position: static; margin-top: 6px; box-shadow: none; }
 
   .panel { position: fixed; top: 0; right: 0; width: 380px; max-width: 100vw; height: 100%; background: #fbfaf8; color: #1c1a2e; pointer-events: auto; display: flex; flex-direction: column; box-shadow: -12px 0 40px rgba(15,23,42,.18); }
   .panel header { padding: 14px 16px; border-bottom: 1px solid #e6e1da; display: flex; align-items: center; gap: 8px; }
@@ -436,25 +505,14 @@
   .card .meta { font-size: 11px; color: #6b6480; }
   .card.gone { border-left-color: #94a3b8; }
 
-  .composer { position: fixed; bottom: 0; right: 0; width: 380px; max-width: 100vw; background: #fff; border-top: 1px solid #e6e1da; padding: 14px 16px 16px; pointer-events: auto; box-shadow: 0 -8px 30px rgba(15,23,42,.12); }
-  .composer .target { font-size: 11px; color: #6b6480; margin-bottom: 8px; word-break: break-all; }
-  .composer textarea { width: 100%; min-height: 84px; font: inherit; font-size: 14px; padding: 9px 10px; border: 1px solid #ddd7ce; border-radius: 7px; resize: vertical; color: #1c1a2e; }
-  .composer .posting-as { font-size: 12px; color: #6b6480; margin-top: 9px; }
-  .composer .row { display: flex; gap: 8px; margin-top: 8px; }
-  .composer select, .composer input { font: inherit; font-size: 13px; padding: 7px 8px; border: 1px solid #ddd7ce; border-radius: 7px; background: #fff; flex: 1; min-width: 0; color: #1c1a2e; }
-  .composer .actions { display: flex; gap: 8px; margin-top: 10px; }
-  .primary { font: inherit; font-size: 13px; font-weight: 600; background: #5b21b6; color: #fff; border: 0; border-radius: 7px; padding: 9px 14px; cursor: pointer; flex: 1; }
-  .primary:hover { background: #4c1d95; }
-  .ghost { font: inherit; font-size: 13px; background: #fff; color: #4a4560; border: 1px solid #ddd7ce; border-radius: 7px; padding: 9px 12px; cursor: pointer; }
-  .ghost:hover { background: #f6f3ee; }
-  .danger { color: #be123c; }
-
   .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 74px; background: #1c1a2e; color: #fff; font-size: 13px; padding: 9px 14px; border-radius: 8px; pointer-events: none; }
 
   @media (max-width: 640px) {
-    .panel, .composer { width: 100%; }
+    .panel { width: 100%; }
+    .pop { left: 0; right: 0; width: auto; }
     .panel { height: 78%; top: auto; bottom: 0; border-top-left-radius: 14px; border-top-right-radius: 14px; }
-    .bar { bottom: 10px; flex-wrap: wrap; justify-content: center; max-width: 96vw; }
+    .bar { bottom: 10px; max-width: calc(100vw - 20px); }
+    .bar .b-primary { min-width: 78px; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   `;
@@ -494,6 +552,7 @@
   var panelOpen = true;
   var filter = 'all';
   var editing = null;      // note being composed or edited
+  var editingEl = null;    // the element it is anchored to
   var pinNodes = [];
 
   function catOf(id) {
@@ -584,7 +643,7 @@
   function scheduleLayout() {
     if (ticking) return;
     ticking = true;
-    requestAnimationFrame(function () { ticking = false; layoutPins(); if (picking && hovered) paintHighlight(hovered); });
+    requestAnimationFrame(function () { ticking = false; layoutPins(); positionPopover(); if (picking && hovered) paintHighlight(hovered); });
   }
 
   function renderPins() {
@@ -612,58 +671,78 @@
   function buildBar() {
     if (bar) bar.remove();
     bar = el('div', 'bar');
-    var vp = viewportSnapshot();
-    var mark = el('span', 'mark', 'WhyTho ' + VERSION);
-    mark.title = 'Click to test the connection to your account.';
-    mark.style.cursor = 'pointer';
-    mark.addEventListener('click', diagnose);
-    var pick = el('button', picking ? 'on' : '', picking ? 'Cancel selection' : 'Select an element');
-    pick.addEventListener('click', function () { setPicking(!picking); });
-    var list = el('button', '', (panelOpen ? 'Hide notes' : 'Show notes') + ' (' + doc.notes.length + ')');
-    list.addEventListener('click', function () { panelOpen = !panelOpen; render(); });
-    var send = el('button', '', TOKEN ? 'Open console' : 'Sign in to save these');
-    send.title = TOKEN
-      ? 'Open WhyTho in a new tab.'
-      : 'These notes are only in this browser. Signing in moves them to your account.';
-    send.addEventListener('click', function () {
-      if (TOKEN) window.open(CONSOLE_URL, '_blank', 'noopener');
-      else sendToConsole();   // nothing is signed in yet, so carry them across by hand
-    });
-    var off = el('button', '', 'Close');
-    off.addEventListener('click', function () { publicApi.off(); });
-    var vpn = el('span', 'vp', (identity.org_name ? identity.org_name + '  ' : '') + vp.breakpoint + ' ' + vp.width + 'px');
 
-    var labels = {
+    var mark = el('span', 'mark', 'WhyTho');
+    mark.title = 'WhyTho ' + VERSION + '. Click to test the connection to your account.';
+    mark.addEventListener('click', diagnose);
+
+    // One primary action. The label never changes, only the state, so the row
+    // cannot reflow when it is pressed.
+    var pick = el('button', 'b-primary' + (picking ? ' on' : ''));
+    pick.innerHTML = '<span class="ico">' + (picking ? SVG.close : SVG.cursor) + '</span><span>Select</span>';
+    pick.title = picking ? 'Cancel selection, or press Escape' : 'Select an element on the page';
+    pick.addEventListener('click', function () { setPicking(!picking); });
+
+    var count = doc.notes.length;
+    var list = el('button', 'b-icon' + (panelOpen ? ' on' : ''));
+    list.innerHTML = '<span class="ico">' + SVG.list + '</span><span class="num">' + count + '</span>';
+    list.title = (panelOpen ? 'Hide' : 'Show') + ' all notes on this page';
+    list.addEventListener('click', function () { panelOpen = !panelOpen; render(); });
+
+    var dotState = { cloud: 'ok', syncing: 'busy', offline: 'bad', error: 'bad', local: 'idle' }[syncState];
+    var dotLabel = {
       cloud: 'Saved to your account',
       syncing: 'Saving',
-      offline: 'Not saved to your account',
-      error: 'Sync problem',
-      local: 'This browser only'
-    };
-    var pending = TOKEN ? unsynced().length : 0;
-    var acct = el('span', 'acct ' + syncState,
-      (syncState === 'offline' || syncState === 'error')
-        ? labels[syncState] + (pending ? ', ' + pending + ' to retry' : '') + '. Retry'
-        : labels[syncState]);
+      offline: 'Not saved to your account. Click to retry.',
+      error: 'Sync problem. Click to retry.',
+      local: 'This browser only. Sign in to save to your account.'
+    }[syncState];
+    var dot = el('button', 'b-dot ' + dotState);
+    dot.innerHTML = '<span class="dot"></span>';
+    dot.title = dotLabel;
+    dot.addEventListener('click', function () {
+      if (!TOKEN) { window.open(CONSOLE_URL, '_blank', 'noopener'); return; }
+      var todo = unsynced();
+      if (todo.length) push(todo); else diagnose();
+    });
 
-    if (TOKEN && (syncState === 'offline' || syncState === 'error')) {
-      acct.style.cursor = 'pointer';
-      acct.title = 'Send the notes this page has not saved yet.';
-      acct.addEventListener('click', function () {
-        var todo = unsynced();
-        if (todo.length) push(todo); else pullNotes();
-      });
-    }
-    if (!TOKEN) {
-      acct.title = 'Sign in at whytho.jakelabate.com and use your personal bookmarklet to save notes to your account.';
-      acct.style.cursor = 'pointer';
-      acct.addEventListener('click', function () { window.open(CONSOLE_URL, '_blank', 'noopener'); });
-    }
+    var more = el('button', 'b-icon');
+    more.innerHTML = '<span class="ico">' + SVG.more + '</span>';
+    more.title = 'More';
+    more.addEventListener('click', function (e) { e.stopPropagation(); toggleMenu(); });
 
-    bar.appendChild(mark); bar.appendChild(pick); bar.appendChild(list);
-    bar.appendChild(send); bar.appendChild(off);
-    bar.appendChild(acct); bar.appendChild(vpn);
+    bar.appendChild(mark);
+    bar.appendChild(el('span', 'sep'));
+    bar.appendChild(pick);
+    bar.appendChild(list);
+    bar.appendChild(dot);
+    bar.appendChild(more);
     layer.appendChild(bar);
+    if (menuOpen) buildMenu();
+  }
+
+  var menuOpen = false;
+  var menuNode = null;
+
+  function toggleMenu() { menuOpen = !menuOpen; buildBar(); }
+
+  function buildMenu() {
+    if (menuNode) { menuNode.remove(); menuNode = null; }
+    if (!menuOpen) return;
+    var vp = viewportSnapshot();
+    menuNode = el('div', 'menu');
+    var items = [
+      ['Open WhyTho', function () { window.open(CONSOLE_URL, '_blank', 'noopener'); }],
+      ['Test connection', diagnose],
+      [(identity.org_name || 'Personal') + ' \u00b7 ' + vp.breakpoint + ' ' + vp.width + 'px', null],
+      ['Close WhyTho', function () { publicApi.off(); }]
+    ];
+    items.forEach(function (it) {
+      var row = el(it[1] ? 'button' : 'div', 'menu-item' + (it[1] ? '' : ' menu-note'), esc(it[0]));
+      if (it[1]) row.addEventListener('click', function () { menuOpen = false; it[1](); buildBar(); });
+      menuNode.appendChild(row);
+    });
+    bar.appendChild(menuNode);
   }
 
   function buildPanel() {
@@ -673,12 +752,9 @@
 
     var h = document.createElement('header');
     h.appendChild(el('h2', '', 'Notes on this page'));
-    var exp = el('button', 'icon'); exp.textContent = 'JSON'; exp.title = 'Copy JSON';
-    exp.style.fontSize = '11px';
-    exp.addEventListener('click', copyJSON);
     var close = el('button', 'icon'); close.textContent = '\u2715'; close.title = 'Hide panel';
     close.addEventListener('click', function () { panelOpen = false; render(); });
-    h.appendChild(exp); h.appendChild(close);
+    h.appendChild(close);
     panel.appendChild(h);
 
     if (lastError) {
@@ -735,17 +811,18 @@
     for (var i = 0; i < doc.notes.length; i++) if (doc.notes[i].id === id) n = doc.notes[i];
     if (!n) return;
     var target = resolve(n);
-    if (target) {
+    if (!target) { toast('That element is no longer on the page.'); return; }
+    var r = target.getBoundingClientRect();
+    if (r.top < 60 || r.bottom > window.innerHeight - 60) {
       target.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      setTimeout(function () { paintHighlight(target); }, 320);
-      setTimeout(function () { if (!picking) paintHighlight(null); }, 2200);
-    } else {
-      toast('That element is no longer on the page.');
     }
+    setTimeout(function () { paintHighlight(target); }, 300);
+    setTimeout(function () { if (!picking) paintHighlight(null); }, 2400);
     openComposer(target, n);
   }
 
   function openComposer(target, existing) {
+    editingEl = target || null;
     editing = existing || {
       id: uid(),
       selector: buildSelector(target),
@@ -766,22 +843,65 @@
     renderComposer();
   }
 
+  function positionPopover() {
+    if (!composer || !editingEl) return;
+    var r = editingEl.getBoundingClientRect();
+    var w = composer.offsetWidth || 320;
+    var h = composer.offsetHeight || 220;
+    var narrow = window.innerWidth < 640;
+
+    if (narrow) {                       // a phone gets a sheet, not a floating card
+      composer.classList.add('sheet');
+      composer.style.left = '0px';
+      composer.style.right = '0px';
+      composer.style.top = 'auto';
+      composer.style.bottom = '0px';
+      return;
+    }
+    composer.classList.remove('sheet');
+    composer.style.right = 'auto';
+    composer.style.bottom = 'auto';
+
+    var left = Math.min(Math.max(8, r.left), window.innerWidth - w - 8);
+    var below = r.bottom + 10;
+    var top = (below + h < window.innerHeight - 8) ? below : Math.max(8, r.top - h - 10);
+    composer.style.left = left + 'px';
+    composer.style.top = top + 'px';
+  }
+
   function renderComposer() {
-    if (composer && editing && composer.dataset.noteId === editing.id) return;
+    if (composer && editing && composer.dataset.noteId === editing.id) { positionPopover(); return; }
     if (composer) { composer.remove(); composer = null; }
     if (!editing) return;
     var n = editing;
-    composer = el('div', 'composer');
+    var readOnly = n.mine === false;
+
+    composer = el('div', 'pop');
     composer.dataset.noteId = n.id;
 
-    var target = el('div', 'target');
-    target.innerHTML = '<b>' + esc(n.tag) + '</b> &nbsp; ' + esc(n.selector);
-    composer.appendChild(target);
+    var head = el('div', 'pop-head');
+    head.innerHTML = '<span class="pop-tag">' + esc(n.tag) + '</span><code>' + esc(n.selector) + '</code>';
+    var x = el('button', 'pop-x');
+    x.innerHTML = SVG.close;
+    x.title = 'Close';
+    x.addEventListener('click', function () { editing = null; editingEl = null; render(); });
+    head.appendChild(x);
+    composer.appendChild(head);
+
+    if (readOnly) {
+      composer.appendChild(el('div', 'pop-read', esc(n.body)));
+      composer.appendChild(el('div', 'pop-by',
+        '<b>' + esc(n.author || 'Unknown') + '</b>' + (n.team ? ' \u00b7 ' + esc(n.team) : '') +
+        ' \u00b7 ' + esc(catOf(n.category).label) + ' \u00b7 ' + esc(n.status)));
+      layer.appendChild(composer);
+      positionPopover();
+      return;
+    }
 
     var ta = document.createElement('textarea');
     ta.placeholder = directory.length
       ? 'Why is this element the way it is? Type @ to tag a person or a team.'
-      : 'Why is this element the way it is? Note the decision, the constraint, and who to ask before changing it.';
+      : 'Why is this element the way it is?';
     ta.value = n.body;
     composer.appendChild(ta);
 
@@ -799,22 +919,17 @@
       if (/\n/.test(frag) || frag.length > 40) return null;
       return { at: at, frag: frag };
     }
-
     function closePicker() { picker.style.display = 'none'; matches = []; }
-
     function refreshPicker() {
       var tok = tokenAtCaret();
       if (!tok || !directory.length) return closePicker();
       var q = tok.frag.toLowerCase();
       matches = directory.filter(function (d) {
-        return d.label.toLowerCase().indexOf(q) === 0 || d.label.toLowerCase().indexOf(' ' + q) > -1 || q === '';
-      }).slice(0, 6);
+        return q === '' || d.label.toLowerCase().indexOf(q) === 0 || d.label.toLowerCase().indexOf(' ' + q) > -1;
+      }).slice(0, 5);
       if (!matches.length) return closePicker();
-      pickIndex = 0;
-      paintPicker();
-      picker.style.display = 'block';
+      pickIndex = 0; paintPicker(); picker.style.display = 'block';
     }
-
     function paintPicker() {
       picker.innerHTML = '';
       matches.forEach(function (m, i) {
@@ -824,52 +939,63 @@
         picker.appendChild(row);
       });
     }
-
     function choose(m) {
       var tok = tokenAtCaret();
       if (!tok) return closePicker();
-      var before = ta.value.slice(0, tok.at);
-      var after = ta.value.slice(ta.selectionStart);
+      var before = ta.value.slice(0, tok.at), after = ta.value.slice(ta.selectionStart);
       ta.value = before + '@' + m.label + ' ' + after;
       var pos = (before + '@' + m.label + ' ').length;
-      ta.setSelectionRange(pos, pos);
-      ta.focus();
-      closePicker();
+      ta.setSelectionRange(pos, pos); ta.focus(); closePicker();
     }
-
     ta.addEventListener('input', refreshPicker);
     ta.addEventListener('keydown', function (e) {
-      if (picker.style.display === 'none' || !matches.length) return;
-      if (e.key === 'ArrowDown') { e.preventDefault(); pickIndex = (pickIndex + 1) % matches.length; paintPicker(); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); pickIndex = (pickIndex - 1 + matches.length) % matches.length; paintPicker(); }
-      else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); choose(matches[pickIndex]); }
-      else if (e.key === 'Escape') { e.preventDefault(); closePicker(); }
+      if (picker.style.display !== 'none' && matches.length) {
+        if (e.key === 'ArrowDown') { e.preventDefault(); pickIndex = (pickIndex + 1) % matches.length; paintPicker(); return; }
+        if (e.key === 'ArrowUp') { e.preventDefault(); pickIndex = (pickIndex - 1 + matches.length) % matches.length; paintPicker(); return; }
+        if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); choose(matches[pickIndex]); return; }
+        if (e.key === 'Escape') { e.preventDefault(); closePicker(); return; }
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); save(); }
     });
     ta.addEventListener('blur', closePicker);
 
-    var row = el('div', 'row');
+    var row = el('div', 'pop-row');
     var cat = document.createElement('select');
     CATEGORIES.forEach(function (c) {
       var o = document.createElement('option'); o.value = c.id; o.textContent = c.label;
       if (c.id === n.category) o.selected = true; cat.appendChild(o);
     });
     var st = document.createElement('select');
-    STATUSES.forEach(function (s) {
-      var o = document.createElement('option'); o.value = s; o.textContent = s;
-      if (s === n.status) o.selected = true; st.appendChild(o);
+    STATUSES.forEach(function (v) {
+      var o = document.createElement('option'); o.value = v; o.textContent = v;
+      if (v === n.status) o.selected = true; st.appendChild(o);
     });
     row.appendChild(cat); row.appendChild(st);
     composer.appendChild(row);
 
-    var who = el('div', 'posting-as');
-    who.textContent = identity.author
-      ? 'Posting as ' + identity.author + (identity.org_name ? ' in ' + identity.org_name : '')
-      : (TOKEN ? 'Posting to your account' : 'Saved in this browser only, not attributed to anyone');
-    composer.appendChild(who);
+    var actions = el('div', 'pop-actions');
+    var by = el('span', 'pop-by-inline', identity.author
+      ? esc(identity.author)
+      : (TOKEN ? 'your account' : 'this browser only'));
+    actions.appendChild(by);
 
-    var actions = el('div', 'actions');
-    var save = el('button', 'primary', doc.notes.indexOf(n) > -1 ? 'Save note' : 'Add note');
-    save.addEventListener('click', function () {
+    if (doc.notes.indexOf(n) > -1) {
+      var del = el('button', 'pop-del');
+      del.innerHTML = SVG.trash;
+      del.title = 'Delete this note';
+      del.addEventListener('click', function () {
+        doc.notes = doc.notes.filter(function (xx) { return xx.id !== n.id; });
+        Store.write(doc); removeRemote(n); editing = null; editingEl = null; render(); toast('Note deleted.');
+      });
+      actions.appendChild(del);
+    }
+
+    var saveBtn = el('button', 'pop-save', doc.notes.indexOf(n) > -1 ? 'Save' : 'Add note');
+    saveBtn.addEventListener('click', save);
+    actions.appendChild(saveBtn);
+    composer.appendChild(actions);
+
+    function save() {
       if (!ta.value.trim()) { ta.focus(); toast('Write the reasoning first.'); return; }
       n.body = ta.value.trim();
       n.category = cat.value;
@@ -877,24 +1003,14 @@
       n.author = identity.author || '';
       if (doc.notes.indexOf(n) === -1) doc.notes.push(n);
       Store.write(doc);
-      editing = null;
+      editing = null; editingEl = null;
       render();
       toast(TOKEN ? 'Note saved. Sending it to your account.' : 'Note saved in this browser.');
       push([n]);
-    });
-    var cancel = el('button', 'ghost', 'Cancel');
-    cancel.addEventListener('click', function () { editing = null; render(); });
-    actions.appendChild(save); actions.appendChild(cancel);
-    if (doc.notes.indexOf(n) > -1 && n.mine !== false) {
-      var del = el('button', 'ghost danger', 'Delete');
-      del.addEventListener('click', function () {
-        doc.notes = doc.notes.filter(function (x) { return x.id !== n.id; });
-        Store.write(doc); removeRemote(n); editing = null; render(); toast('Note deleted.');
-      });
-      actions.appendChild(del);
     }
-    composer.appendChild(actions);
+
     layer.appendChild(composer);
+    positionPopover();
     setTimeout(function () { ta.focus(); }, 30);
   }
 
@@ -953,6 +1069,7 @@
 
   /* ---------- wiring ---------- */
 
+  document.addEventListener('mousedown', function () { if (menuOpen) { menuOpen = false; buildBar(); } }, true);
   document.addEventListener('mousemove', onMove, true);
   document.addEventListener('click', onPick, true);
   document.addEventListener('touchstart', onTouchStart, { capture: true, passive: false });
@@ -961,7 +1078,7 @@
   window.addEventListener('scroll', scheduleLayout, true);
   window.addEventListener('resize', function () { scheduleLayout(); buildBar(); }, true);
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { if (picking) setPicking(false); else if (editing) { editing = null; render(); } }
+    if (e.key === 'Escape') { if (picking) setPicking(false); else if (menuOpen) { menuOpen = false; buildBar(); } else if (editing) { editing = null; editingEl = null; render(); } }
   }, true);
 
   var publicApi = {
