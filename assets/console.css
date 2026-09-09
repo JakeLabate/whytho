@@ -184,3 +184,9 @@ footer p { font-size: 14px; color: var(--ink-soft); max-width: none; margin: 0; 
 .auth-actions { display: flex; gap: 8px; }
 .auth .sub { margin: 2px 0 0; }
 #bookmarklet-state { font-size: 13px; margin: 10px 0; }
+
+.btn.oauth { width: 100%; background: var(--ink); border-color: var(--ink); }
+.btn.oauth:hover { background: #000; border-color: #000; }
+.or { display: flex; align-items: center; gap: 12px; margin: 16px 0; color: var(--ink-soft); font-size: 13px; }
+.or::before, .or::after { content: ""; height: 1px; background: var(--line); flex: 1; }
+.auth-actions { flex-wrap: wrap; }

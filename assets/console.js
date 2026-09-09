@@ -108,31 +108,66 @@
       });
     } else {
       box.innerHTML =
+        '<button class="btn oauth" type="button" id="github">Continue with GitHub</button>' +
+        '<div class="or"><span>or use an email address</span></div>' +
         '<form class="auth" id="auth-form">' +
         '<input type="email" id="email" placeholder="you@company.com" autocomplete="email" required>' +
-        '<input type="password" id="password" placeholder="Password, 8 characters or more" autocomplete="current-password" minlength="8" required>' +
+        '<input type="password" id="password" placeholder="Password, 8 characters or more" autocomplete="current-password" minlength="8">' +
         '<div class="auth-actions">' +
         '<button class="btn small" type="submit" id="signin">Sign in</button>' +
         '<button class="btn quiet small" type="button" id="signup">Create account</button>' +
-        '</div><p class="sub" id="auth-msg">Without an account, notes stay in this browser.</p></form>';
+        '<button class="btn quiet small" type="button" id="magic">Email me a link</button>' +
+        '</div><p class="sub" id="auth-msg">Without an account, notes stay in this browser. If you have signed in to another of these apps with GitHub, use that button and skip the password.</p></form>';
 
+      $('#github').addEventListener('click', function () {
+        sb.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: CFG.consoleUrl } })
+          .then(function (res) { if (res.error) toast(res.error.message); });
+      });
       $('#auth-form').addEventListener('submit', function (e) { e.preventDefault(); doAuth('in'); });
       $('#signup').addEventListener('click', function () { doAuth('up'); });
+      $('#magic').addEventListener('click', function () { doAuth('magic'); });
     }
     renderSetup();
   }
 
   function doAuth(kind) {
     var email = $('#email').value.trim(), password = $('#password').value;
-    if (!email || password.length < 8) { toast('Enter an email and a password of at least 8 characters.'); return; }
+    var msg = $('#auth-msg');
+    if (!email) { toast('Enter your email address.'); return; }
+
+    if (kind === 'magic') {
+      sb.auth.signInWithOtp({ email: email, options: { emailRedirectTo: CFG.consoleUrl } })
+        .then(function (res) {
+          if (res.error) { msg.textContent = res.error.message; return; }
+          msg.textContent = 'Sign in link sent to ' + email + '. It works once and expires in an hour.';
+        });
+      return;
+    }
+
+    if (password.length < 8) { toast('Passwords need at least 8 characters.'); return; }
+
     var call = kind === 'up'
       ? sb.auth.signUp({ email: email, password: password, options: { emailRedirectTo: CFG.consoleUrl } })
       : sb.auth.signInWithPassword({ email: email, password: password });
 
     call.then(function (res) {
-      if (res.error) { toast(res.error.message); return; }
-      if (kind === 'up' && res.data.user && !res.data.session) {
-        $('#auth-msg').textContent = 'Check your email to confirm the account, then sign in.';
+      if (res.error) {
+        // A wrong password and an account with no password look the same from here,
+        // so say what to try rather than repeating the server wording.
+        msg.textContent = res.error.message.indexOf('Invalid login credentials') > -1
+          ? 'That email and password did not match. If you created this account with GitHub, there is no password on it. Use Continue with GitHub, or email yourself a link.'
+          : res.error.message;
+        return;
+      }
+      // Supabase answers a repeat signup with a 200 and an empty identity list, and
+      // sends no email. Without this check the page would tell you to wait for one.
+      var u = res.data && res.data.user;
+      if (kind === 'up' && u && Array.isArray(u.identities) && u.identities.length === 0) {
+        msg.textContent = 'That email already has an account. Sign in instead, or email yourself a link if you do not have a password.';
+        return;
+      }
+      if (kind === 'up' && u && !res.data.session) {
+        msg.textContent = 'Check your email to confirm the account, then sign in.';
         return;
       }
       boot();
