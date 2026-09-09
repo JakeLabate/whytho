@@ -384,3 +384,6 @@ body.doc main { max-width: 1080px; }
 .tok-var { color: #f5a3c7; }
 .tok-flag { color: #9aa6ff; }
 @media (max-width: 700px) { .code-block pre code { font-size: 12px; } }
+
+.app-who.on .who { background: var(--ground-alt); border-radius: 999px; padding-left: 6px; padding-right: 12px; }
+.who:hover { background: var(--ground-alt); border-radius: 999px; padding-left: 6px; padding-right: 12px; }

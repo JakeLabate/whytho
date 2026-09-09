@@ -84,6 +84,7 @@
 
   /* ---------- shell and routing ---------- */
 
+  // account is reachable from the identity link in the bar, so it has no tab
   var TABS = ['notes', 'inbox', 'workspace', 'setup', 'api', 'account'];
 
   function currentRoute() {
@@ -99,6 +100,8 @@
       var tab = a.getAttribute('data-tab');
       a.classList.toggle('on', tab === name || (name === 'page' && tab === 'notes'));
     });
+    var who = $('#app-who');
+    if (who) who.classList.toggle('on', name === 'account');
     if (window.scrollTo) window.scrollTo(0, 0);
   }
 
