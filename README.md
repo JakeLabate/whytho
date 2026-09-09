@@ -51,7 +51,12 @@ Supabase project `vvekkbboqqkxnlpmxazh`, shared with the portal and analytics ap
 
 ## Constraints, stated plainly
 
-- One account, one set of notes. No team sharing yet; handover is by export.
+- Organizations hold teams, teams hold people. A note written inside an organization is visible to
+  every member and attributed to its author; notes written outside one are private to the account.
+- Attribution is resolved server side from the account profile, which is populated from the identity
+  provider. Nobody types their own name, and a client cannot claim to be someone else.
+- Only the author of a note can edit or delete it. Organization admins can remove a page.
+- Joining is by invite code rather than email, because this project has no production mailer.
 - Third party sites cannot be framed and annotated remotely, so WhyTho runs inside the page. You
   need to be able to load the page yourself.
 - If a template changes underneath a note, the pin resolves to nothing and is shown as unresolved
