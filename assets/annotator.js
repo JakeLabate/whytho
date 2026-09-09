@@ -9,7 +9,7 @@
 
   var CONSOLE_URL = 'https://whytho.jakelabate.com/';
   var SYNC_URL = 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync';
-  var VERSION = '1.3';
+  var VERSION = '1.5';
   var STORE_PREFIX = 'why:v1:';
   var CATEGORIES = [
     { id: 'seo', label: 'SEO', color: '#5b21b6' },
@@ -179,7 +179,7 @@
   var syncState = TOKEN ? 'syncing' : 'local';
   var lastError = '';
 
-  function api(action, extra) {
+  function syncRequest(action, extra) {
     var body = {
       token: TOKEN,
       action: action,
@@ -227,7 +227,7 @@
     if (!TOKEN) { toast('No annotator token on this page. Sign in and use your own bookmarklet.'); return; }
     var started = Date.now();
     toast('Testing the connection.');
-    api('whoami').then(function (res) {
+    syncRequest('whoami').then(function (res) {
       var ms = Date.now() - started;
       if (res.error) toast('Reached the server in ' + ms + 'ms, and it said: ' + res.error);
       else toast('Connected in ' + ms + 'ms as ' + (res.email || 'your account') + '. Sync works from here.');
@@ -257,15 +257,32 @@
     };
   }
 
+  var watchTimer = null;
+  function watchdog() {
+    clearTimeout(watchTimer);
+    watchTimer = setTimeout(function () {
+      if (syncState !== 'syncing') return;
+      lastError = 'The request was never answered and never refused, which usually means something in the browser is holding it. An extension blocking supabase.co is the common cause.';
+      setSync('offline', 'Still not saved to your account after 15 seconds.');
+    }, 15000);
+  }
+
   function setSync(state, msg) {
+    if (state !== 'syncing') clearTimeout(watchTimer);
     syncState = state;
     buildBar();
+    buildPanel();   // the failure band lives in the panel, so redraw it too
     if (msg) toast(msg);
   }
 
   function pullNotes() {
     if (!TOKEN) return;
-    api('pull').then(function (res) {
+    setSync('syncing');
+    watchdog();
+    var call;
+    try { call = syncRequest('pull'); }
+    catch (e) { lastError = reason(e); setSync('offline', 'Sync could not start. ' + lastError); return; }
+    call.then(function (res) {
       if (res.error) { setSync('error', res.error); return; }
       var cloud = (res.notes || []).map(fromRow);
       var byId = {};
@@ -283,7 +300,11 @@
   function push(notes) {
     if (!TOKEN || !notes.length) return;
     setSync('syncing');
-    api('push', { notes: notes }).then(function (res) {
+    watchdog();
+    var call;
+    try { call = syncRequest('push', { notes: notes }); }
+    catch (e) { lastError = reason(e); setSync('offline', 'Sync could not start. ' + lastError); return; }
+    call.then(function (res) {
       if (res.error) { setSync('error', res.error); return; }
       lastError = '';
       notes.forEach(function (n) { n._synced = true; });
@@ -294,7 +315,7 @@
 
   function removeRemote(note) {
     if (!TOKEN) return;
-    api('delete', { client_id: note.id }).then(function () { setSync('cloud'); },
+    syncRequest('delete', { client_id: note.id }).then(function () { setSync('cloud'); },
       function () { setSync('offline'); });
   }
 
@@ -568,7 +589,7 @@
     send.title = 'Open the console with these notes attached.';
     send.addEventListener('click', sendToConsole);
     var off = el('button', '', 'Close');
-    off.addEventListener('click', function () { api.off(); });
+    off.addEventListener('click', function () { publicApi.off(); });
     var vpn = el('span', 'vp', vp.breakpoint + ' ' + vp.width + 'px');
 
     var labels = {
@@ -753,10 +774,10 @@
       try { localStorage.setItem('why:author', author); } catch (e) { }
       if (doc.notes.indexOf(n) === -1) doc.notes.push(n);
       Store.write(doc);
-      push([n]);
       editing = null;
       render();
-      toast(TOKEN ? 'Note saved to your account.' : 'Note saved in this browser.');
+      toast(TOKEN ? 'Note saved. Sending it to your account.' : 'Note saved in this browser.');
+      push([n]);
     });
     var cancel = el('button', 'ghost', 'Cancel');
     cancel.addEventListener('click', function () { editing = null; render(); });
@@ -840,19 +861,19 @@
     if (e.key === 'Escape') { if (picking) setPicking(false); else if (editing) { editing = null; render(); } }
   }, true);
 
-  var api = {
+  var publicApi = {
     on: function () { host.style.display = ''; render(); },
     off: function () {
       host.style.display = 'none';
       setPicking(false);
       toast('');
     },
-    toggle: function () { host.style.display === 'none' ? api.on() : api.off(); },
+    toggle: function () { host.style.display === 'none' ? publicApi.on() : publicApi.off(); },
     export: payload,
     version: VERSION,
     diagnose: diagnose
   };
-  window.__why__ = api;
+  window.__why__ = publicApi;
 
   render();
   if (TOKEN) pullNotes();
