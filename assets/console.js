@@ -1,4 +1,4 @@
-/* Why console
+/* WhyTho console
    Account, library, and exports. Notes live in Postgres behind row level security,
    so an account only ever sees its own rows. */
 (function () {
@@ -412,7 +412,7 @@
       var raw = $('#import-text').value.trim();
       if (!raw) { toast('Paste an export first.'); return; }
       try { mergeLocal(JSON.parse(raw)); $('#import-text').value = ''; }
-      catch (e) { toast('That is not valid Why JSON.'); }
+      catch (e) { toast('That is not valid WhyTho JSON.'); }
     });
 
     $('#viewer-close').addEventListener('click', function () {
@@ -444,7 +444,7 @@
       if (!f) return;
       var r = new FileReader();
       r.onload = function () {
-        try { mergeLocal(JSON.parse(r.result)); } catch (err) { toast('That file is not a Why export.'); }
+        try { mergeLocal(JSON.parse(r.result)); } catch (err) { toast('That file is not a WhyTho export.'); }
       };
       r.readAsText(f);
     });

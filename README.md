@@ -1,14 +1,14 @@
-# Why
+# WhyTho
 
 A webpage annotator that records the reasoning behind element level decisions.
 
-Live at https://why.jakelabate.com
+Live at https://whytho.jakelabate.com
 
 ## Why it exists
 
 Sites accumulate decisions. An H1 phrased a certain way, a nav item kept above the fold, a
 canonical pointing somewhere non obvious. Six months later nobody remembers which of those were
-deliberate. Why pins the reasoning to the element itself so the next person can read it.
+deliberate. WhyTho pins the reasoning to the element itself so the next person can read it.
 
 ## How it works
 
@@ -28,6 +28,14 @@ deliberate. Why pins the reasoning to the element itself so the next person can 
   locally and pushed on the next run.
 - Exports: JSON, Markdown for pull requests and handover docs, and CSV.
 
+## Naming
+
+The product is WhyTho and the site is whytho.jakelabate.com. The internal identifiers still read
+`why`: the `data-why-token` attribute, the `why:` localStorage keys, the `window.__why__` global,
+the `why_pages`, `why_notes` and `why_tokens` tables, and the `why-sync` edge function. Those are
+left alone deliberately. Changing them would invalidate installed bookmarklets and orphan notes
+cached on annotated origins, and none of them are visible to anyone using the tool.
+
 ## Backend
 
 Supabase project `vvekkbboqqkxnlpmxazh`, shared with the portal and analytics apps.
@@ -44,7 +52,7 @@ Supabase project `vvekkbboqqkxnlpmxazh`, shared with the portal and analytics ap
 ## Constraints, stated plainly
 
 - One account, one set of notes. No team sharing yet; handover is by export.
-- Third party sites cannot be framed and annotated remotely, so Why runs inside the page. You
+- Third party sites cannot be framed and annotated remotely, so WhyTho runs inside the page. You
   need to be able to load the page yourself.
 - If a template changes underneath a note, the pin resolves to nothing and is shown as unresolved
   rather than silently reattaching to the wrong element.

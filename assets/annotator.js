@@ -1,4 +1,4 @@
-/* Why annotator engine
+/* WhyTho annotator engine
    Loads into any page via bookmarklet or script tag. Self contained, no dependencies.
    All UI lives in a shadow root so host page CSS cannot reach it and it cannot leak out.
    Storage is localStorage on the annotated origin. Export moves notes to the console. */
@@ -7,7 +7,7 @@
 
   if (window.__why__) { window.__why__.toggle(); return; }
 
-  var CONSOLE_URL = 'https://why.jakelabate.com/';
+  var CONSOLE_URL = 'https://whytho.jakelabate.com/';
   var SYNC_URL = 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync';
   var STORE_PREFIX = 'why:v1:';
   var CATEGORIES = [
@@ -503,7 +503,7 @@
     if (bar) bar.remove();
     bar = el('div', 'bar');
     var vp = viewportSnapshot();
-    var mark = el('span', 'mark', 'Why');
+    var mark = el('span', 'mark', 'WhyTho');
     var pick = el('button', picking ? 'on' : '', picking ? 'Cancel selection' : 'Select an element');
     pick.addEventListener('click', function () { setPicking(!picking); });
     var list = el('button', '', (panelOpen ? 'Hide notes' : 'Show notes') + ' (' + doc.notes.length + ')');
@@ -526,7 +526,7 @@
     };
     var acct = el('span', 'acct ' + syncState, labels[syncState]);
     if (!TOKEN) {
-      acct.title = 'Sign in at why.jakelabate.com and use your personal bookmarklet to save notes to your account.';
+      acct.title = 'Sign in at whytho.jakelabate.com and use your personal bookmarklet to save notes to your account.';
       acct.style.cursor = 'pointer';
       acct.addEventListener('click', function () { window.open(CONSOLE_URL, '_blank', 'noopener'); });
     }
@@ -781,5 +781,5 @@
 
   render();
   if (TOKEN) pullNotes();
-  if (!doc.notes.length) toast('Why is on. Select an element to leave your first note.');
+  if (!doc.notes.length) toast('WhyTho is on. Select an element to leave your first note.');
 })();

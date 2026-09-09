@@ -3,25 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Why: annotate a webpage with the reasoning behind it</title>
-<meta name="description" content="Why lets you select any element on a page, on desktop or mobile, and record why it is the way it is. Built for SEO consultants, developers, and anyone who inherits someone else's decisions.">
-<link rel="canonical" href="https://why.jakelabate.com/">
-<meta property="og:title" content="Why">
+<title>WhyTho: annotate a webpage with the reasoning behind it</title>
+<meta name="description" content="WhyTho lets you select any element on a page, on desktop or mobile, and record why it is the way it is. Built for SEO consultants, developers, and anyone who inherits someone else's decisions.">
+<link rel="canonical" href="https://whytho.jakelabate.com/">
+<meta property="og:title" content="WhyTho">
 <meta property="og:description" content="Select an element on any page and record the reasoning behind it.">
-<meta property="og:url" content="https://why.jakelabate.com/">
+<meta property="og:url" content="https://whytho.jakelabate.com/">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/console.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Why","applicationCategory":"DeveloperApplication","operatingSystem":"Any modern browser","url":"https://why.jakelabate.com/","description":"A webpage annotation tool that records the reasoning behind element level decisions.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"Jake Labate","jobTitle":"SEO Consultant","url":"https://www.jakelabate.com/"}}
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"WhyTho","applicationCategory":"DeveloperApplication","operatingSystem":"Any modern browser","url":"https://whytho.jakelabate.com/","description":"A webpage annotation tool that records the reasoning behind element level decisions.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"Jake Labate","jobTitle":"SEO Consultant","url":"https://www.jakelabate.com/"}}
 </script>
 </head>
 <body>
 
 <header class="masthead">
-  <a class="wordmark" href="./">Why</a>
+  <a class="wordmark" href="./">WhyTho</a>
   <nav>
     <a href="#account">Account</a>
     <a href="#setup">Setup</a>
@@ -35,7 +35,7 @@
   <section class="hero">
     <div class="hero-copy">
       <h1>Every element on a page is a decision somebody made.</h1>
-      <p class="lede">Why pins the reasoning to the element itself. Turn it on over any page you can load, select something on desktop or on a phone, and write down why it is that way. The note carries the selector, the breakpoint it was taken at, and who made the call. Everything saves to your account, so the record follows you across machines rather than sitting in one browser.</p>
+      <p class="lede">WhyTho pins the reasoning to the element itself. Turn it on over any page you can load, select something on desktop or on a phone, and write down why it is that way. The note carries the selector, the breakpoint it was taken at, and who made the call. Everything saves to your account, so the record follows you across machines rather than sitting in one browser.</p>
       <div class="hero-actions">
         <a class="btn" href="#account">Create an account</a>
         <a class="btn quiet" href="demo.html">Try it on a demo page</a>
@@ -69,26 +69,26 @@
 
   <section id="setup" class="band">
     <h2>Setup</h2>
-    <p>Why runs inside the page you are annotating, so it works on staging, on production, and on anything behind a login. Two ways in.</p>
+    <p>WhyTho runs inside the page you are annotating, so it works on staging, on production, and on anything behind a login. Two ways in.</p>
 
     <div class="two">
       <div class="card">
         <h3>Bookmarklet</h3>
         <p>Drag this to your bookmarks bar, then click it on any page. It carries your account with it, so notes save straight to the database. On mobile, copy the code and save it as a bookmark by hand.</p>
-        <p><a class="bookmarklet" id="bookmarklet" href="#">Annotate with Why</a></p>
+        <p><a class="bookmarklet" id="bookmarklet" href="#">Annotate with WhyTho</a></p>
         <p class="sub" id="bookmarklet-state"></p>
         <button class="btn quiet small" id="copy-bookmarklet">Copy bookmarklet code</button>
       </div>
       <div class="card">
         <h3>Script tag</h3>
         <p>Better for a staging environment you keep coming back to. The token in the tag is yours, so treat the snippet like a password.</p>
-        <pre><code id="snippet">&lt;script src="https://why.jakelabate.com/assets/annotator.js" defer&gt;&lt;/script&gt;</code></pre>
+        <pre><code id="snippet">&lt;script src="https://whytho.jakelabate.com/assets/annotator.js" defer&gt;&lt;/script&gt;</code></pre>
         <button class="btn quiet small" id="copy-snippet">Copy script tag</button>
       </div>
     </div>
 
     <ol class="steps">
-      <li>Load the page you want to document and start Why.</li>
+      <li>Load the page you want to document and start WhyTho.</li>
       <li>Choose <b>Select an element</b>, then click it. On a phone, press and hold instead.</li>
       <li>Write the reasoning, tag it, save. A numbered pin sticks to the element.</li>
       <li>The note saves to your account as you write it. Open the console from any browser to read, export, or delete it.</li>
@@ -128,7 +128,7 @@
   <section class="band alt">
     <h2>What it does not do</h2>
     <ul class="plain">
-      <li>It cannot open someone else's site in a frame and annotate it. Most sites refuse to be framed, so Why runs in the page instead. That means you need to be able to load the page yourself.</li>
+      <li>It cannot open someone else's site in a frame and annotate it. Most sites refuse to be framed, so WhyTho runs in the page instead. That means you need to be able to load the page yourself.</li>
       <li>Notes are yours alone. There is no sharing between accounts yet, so a handover happens through a Markdown, CSV, or JSON export.</li>
       <li>Selectors are recorded as written at the time. If a template changes underneath a note, the pin shows as unresolved rather than silently pointing at the wrong thing.</li>
     </ul>
@@ -137,7 +137,7 @@
 </main>
 
 <footer>
-  <p>Why, built by Jake Labate, SEO Consultant. <a href="https://www.jakelabate.com/">jakelabate.com</a></p>
+  <p>WhyTho, built by Jake Labate, SEO Consultant. <a href="https://www.jakelabate.com/">jakelabate.com</a></p>
 </footer>
 
 <div id="toast" class="toast" hidden></div>
