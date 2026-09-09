@@ -9,6 +9,7 @@
 
   var CONSOLE_URL = 'https://whytho.jakelabate.com/';
   var SYNC_URL = 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync';
+  var VERSION = '1.2';
   var STORE_PREFIX = 'why:v1:';
   var CATEGORIES = [
     { id: 'seo', label: 'SEO', color: '#5b21b6' },
@@ -214,8 +215,24 @@
   }
 
   function reason(err) {
-    if (err && err.name === 'AbortError') return 'The sync request timed out after 12 seconds.';
-    return 'Could not reach the sync endpoint from this page.';
+    if (!err) return 'Sync failed for an unknown reason.';
+    if (err.name === 'AbortError') return 'Timed out after 12 seconds with no response.';
+    return (err.name || 'Error') + ': ' + (err.message || 'could not reach the sync endpoint');
+  }
+
+  // Runs one round trip and reports exactly what came back, so a failure can be
+  // read from the page instead of from the network tab.
+  function diagnose() {
+    if (!TOKEN) { toast('No annotator token on this page. Sign in and use your own bookmarklet.'); return; }
+    var started = Date.now();
+    toast('Testing the connection.');
+    api('whoami').then(function (res) {
+      var ms = Date.now() - started;
+      if (res.error) toast('Reached the server in ' + ms + 'ms, and it said: ' + res.error);
+      else toast('Connected in ' + ms + 'ms as ' + (res.email || 'your account') + '. Sync works from here.');
+    }, function (err) {
+      toast('Failed after ' + (Date.now() - started) + 'ms. ' + reason(err));
+    });
   }
 
   // Notes the network has not accepted yet, so a retry knows what to send.
@@ -535,7 +552,10 @@
     if (bar) bar.remove();
     bar = el('div', 'bar');
     var vp = viewportSnapshot();
-    var mark = el('span', 'mark', 'WhyTho');
+    var mark = el('span', 'mark', 'WhyTho ' + VERSION);
+    mark.title = 'Click to test the connection to your account.';
+    mark.style.cursor = 'pointer';
+    mark.addEventListener('click', diagnose);
     var pick = el('button', picking ? 'on' : '', picking ? 'Cancel selection' : 'Select an element');
     pick.addEventListener('click', function () { setPicking(!picking); });
     var list = el('button', '', (panelOpen ? 'Hide notes' : 'Show notes') + ' (' + doc.notes.length + ')');
@@ -820,7 +840,8 @@
     },
     toggle: function () { host.style.display === 'none' ? api.on() : api.off(); },
     export: payload,
-    version: '1.0.0'
+    version: VERSION,
+    diagnose: diagnose
   };
   window.__why__ = api;
 
