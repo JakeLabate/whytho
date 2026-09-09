@@ -342,6 +342,7 @@
       b.addEventListener('click', function () {
         installTarget = b.getAttribute('data-install');
         renderInstallGuide();
+    enhanceCode(document.querySelector('[data-view="setup"]'));
       });
     });
     $('#copy-bookmarklet').addEventListener('click', function () { copy(bookmarkletCode(), 'Bookmarklet code'); });
@@ -357,6 +358,7 @@
     $('#snippet').textContent = '<script src="' + CFG.consoleUrl.replace(/\/$/, '') + '/assets/annotator.js"' +
       (token ? ' data-why-token="' + token + '"' : '') + ' defer><\/script>';
     renderInstallGuide();
+    enhanceCode(document.querySelector('[data-view="setup"]'));
   }
 
   /* ---------- workspace ---------- */
@@ -614,6 +616,115 @@
 
   /* ---------- library ---------- */
 
+  /* ---------- code blocks ----------
+     A small tokenizer rather than a highlighting library: five languages, patterns
+     written with non capturing groups so the match index maps to a rule. */
+
+  var LANGS = {
+    bash: { label: 'Shell', rules: [
+      ['comment', /#[^\n]*/],
+      ['str', /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/],
+      ['var', /\$\{?[A-Za-z_][A-Za-z0-9_]*\}?|\$\((?:[^)]*)\)/],
+      ['flag', /(?:^|\s)--?[A-Za-z][A-Za-z-]*/],
+      ['fn', /\b(?:curl|jq|node|npm|date|export|echo|python3?|pip)\b/]
+    ]},
+    javascript: { label: 'JavaScript', rules: [
+      ['comment', /\/\/[^\n]*/],
+      ['str', /`(?:\\.|[^`\\])*`|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/],
+      ['kw', /\b(?:const|let|var|await|async|for|of|in|if|else|return|new|function|import|from|export|process|true|false|null|undefined)\b/],
+      ['fn', /\b(?:fetch|console|JSON|Object|Array|encodeURIComponent)\b/],
+      ['num', /\b\d+(?:\.\d+)?\b/]
+    ]},
+    python: { label: 'Python', rules: [
+      ['comment', /#[^\n]*/],
+      ['str', /"""[\s\S]*?"""|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/],
+      ['kw', /\b(?:import|from|as|for|in|while|with|if|else|elif|break|continue|return|def|class|True|False|None|not|and|or)\b/],
+      ['fn', /\b(?:print|open|sorted|set|requests|csv|json)\b/],
+      ['num', /\b\d+(?:\.\d+)?\b/]
+    ]},
+    json: { label: 'JSON', rules: [
+      ['key', /"(?:\\.|[^"\\])*"(?=\s*:)/],
+      ['str', /"(?:\\.|[^"\\])*"/],
+      ['kw', /\b(?:true|false|null)\b/],
+      ['num', /-?\b\d+(?:\.\d+)?\b/]
+    ]},
+    yaml: { label: 'YAML', rules: [
+      ['comment', /#[^\n]*/],
+      ['str', /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/],
+      ['key', /^\s*-?\s*[A-Za-z_][A-Za-z0-9_-]*(?=:)/m],
+      ['var', /\$\{\{[^}]*\}\}/]
+    ]},
+    html: { label: 'HTML', rules: [
+      ['str', /"(?:\\.|[^"\\])*"/],
+      ['kw', /<\/?[A-Za-z][A-Za-z0-9-]*|\/?>/],
+      ['key', /\b[a-z-]+(?==)/]
+    ]},
+    text: { label: '', rules: [] }
+  };
+
+  var compiled = {};
+  function langRegex(lang) {
+    if (compiled[lang]) return compiled[lang];
+    var rules = LANGS[lang].rules;
+    if (!rules.length) return (compiled[lang] = null);
+    var flags = 'g' + (rules.some(function (r) { return r[1].flags.indexOf('m') > -1; }) ? 'm' : '');
+    compiled[lang] = new RegExp(rules.map(function (r) { return '(' + r[1].source + ')'; }).join('|'), flags);
+    return compiled[lang];
+  }
+
+  function tokenize(src, lang) {
+    var conf = LANGS[lang] || LANGS.text;
+    var re = langRegex(lang);
+    if (!re) return esc(src);
+    var out = '', last = 0, m;
+    re.lastIndex = 0;
+    while ((m = re.exec(src)) !== null) {
+      if (m[0] === '') { re.lastIndex++; continue; }
+      out += esc(src.slice(last, m.index));
+      var cls = 'tok';
+      for (var i = 1; i < m.length; i++) {
+        if (m[i] !== undefined) { cls = 'tok-' + conf.rules[i - 1][0]; break; }
+      }
+      out += '<span class="' + cls + '">' + esc(m[0]) + '</span>';
+      last = m.index + m[0].length;
+    }
+    return out + esc(src.slice(last));
+  }
+
+  function enhanceCode(root) {
+    (root || document).querySelectorAll('pre > code[data-lang]').forEach(function (codeEl) {
+      var raw = codeEl.textContent;
+      if (codeEl.getAttribute('data-raw') === raw) return;   // already painted, unchanged
+      codeEl.setAttribute('data-raw', raw);
+
+      var lang = codeEl.getAttribute('data-lang');
+      codeEl.innerHTML = tokenize(raw, lang);
+
+      var pre = codeEl.parentNode;
+      var block = pre.parentNode && pre.parentNode.classList.contains('code-block') ? pre.parentNode : null;
+      if (!block) {
+        block = document.createElement('div');
+        block.className = 'code-block';
+        pre.parentNode.insertBefore(block, pre);
+        var bar = document.createElement('div');
+        bar.className = 'code-bar';
+        bar.innerHTML = '<span class="code-lang">' + esc((LANGS[lang] || LANGS.text).label) + '</span>';
+        var btn = document.createElement('button');
+        btn.className = 'code-copy';
+        btn.type = 'button';
+        btn.textContent = 'Copy';
+        btn.addEventListener('click', function () {
+          copy(codeEl.getAttribute('data-raw') || codeEl.textContent, 'Snippet');
+          btn.textContent = 'Copied';
+          setTimeout(function () { btn.textContent = 'Copy'; }, 1600);
+        });
+        bar.appendChild(btn);
+        block.appendChild(bar);
+        block.appendChild(pre);
+      }
+    });
+  }
+
   /* ---------- API keys ---------- */
 
   var apiKeys = [];
@@ -641,6 +752,7 @@
     if (!base) return;
     base.textContent = apiBase();
     document.querySelectorAll('.api-host').forEach(function (n) { n.textContent = apiBase(); });
+    enhanceCode(document.querySelector('[data-view="api"]'));
 
     var list = $('#key-list');
     if (!apiKeys.length) {
@@ -688,9 +800,10 @@
       var box = $('#key-fresh');
       box.hidden = false;
       box.innerHTML = '<p class="key-fresh-note"><b>Copy this now.</b> Only a hash is stored, so this is the one time it is shown.</p>' +
-        '<pre><code>' + esc(raw) + '</code></pre>' +
+        '<pre><code data-lang="text">' + esc(raw) + '</code></pre>' +
         '<button class="btn small" id="key-copy">Copy key</button>';
       $('#key-copy').addEventListener('click', function () { copy(raw, 'API key'); });
+      enhanceCode(box);
       loadKeys().then(renderApi);
     });
   }

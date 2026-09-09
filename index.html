@@ -116,7 +116,7 @@
         <summary><b>Always on for a staging site</b><span class="sub">Optional. Only for a site you control.</span></summary>
         <p>The bookmarklet is per person: you click it when you need it. This script tag does the opposite, it loads WhyTho for anyone who opens the page, with no clicking. Useful on a staging environment your team lives in.</p>
         <p class="warn-inline"><b>The token below is your account credential.</b> Anyone who can view the source of that page can take it and write notes as you. Put it on private staging only, never on a production site.</p>
-        <pre><code id="snippet"></code></pre>
+        <pre><code id="snippet" data-lang="html"></code></pre>
         <button class="btn quiet small" id="copy-snippet">Copy script tag</button>
       </details>
 
@@ -164,11 +164,11 @@
       <div class="panel-card">
         <h2>Quickstart</h2>
         <p>Base URL</p>
-        <pre><code id="api-base"></code></pre>
+        <pre><code id="api-base" data-lang="text"></code></pre>
         <p>Authenticate with your key on every request. Confirm it works:</p>
-        <pre><code>curl -H "Authorization: Bearer why_live_..." \
+        <pre><code data-lang="bash">curl -H "Authorization: Bearer why_live_..." \
   "<span class="api-host"></span>/me"</code></pre>
-        <pre><code>{
+        <pre><code data-lang="json">{
   "ok": true,
   "key_name": "Looker dashboard",
   "scope": "organization",
@@ -206,7 +206,7 @@
         </table>
 
         <h3>A note looks like this</h3>
-        <pre><code>{
+        <pre><code data-lang="json">{
   "data": [
     {
       "id": "n_abc123",
@@ -238,7 +238,7 @@
 
         <h3>1. Fail a build when a protected element disappears</h3>
         <p>The strongest reason this API exists. Every note marked <code>do not change</code> names a selector. If the selector is gone from the built page, somebody removed something deliberate.</p>
-        <pre><code>// guard.mjs, run against your built HTML or a preview URL
+        <pre><code data-lang="javascript">// guard.mjs, run against your built HTML or a preview URL
 const KEY = process.env.WHYTHO_KEY;
 const res = await fetch(
   "<span class="api-host"></span>/notes?status=do%20not%20change&amp;limit=200",
@@ -257,7 +257,7 @@ for (const note of data) {
   }
 }
 process.exit(failed ? 1 : 0);</code></pre>
-        <pre><code># .github/workflows/whytho.yml
+        <pre><code data-lang="yaml"># .github/workflows/whytho.yml
 - name: Check protected elements
   env:
     WHYTHO_KEY: ${{ secrets.WHYTHO_KEY }}
@@ -265,26 +265,26 @@ process.exit(failed ? 1 : 0);</code></pre>
 
         <h3>2. Brief a redesign on one template</h3>
         <p>Everything anyone has recorded under a path, oldest first, as a readable list.</p>
-        <pre><code>curl -s -H "Authorization: Bearer $WHYTHO_KEY" \
+        <pre><code data-lang="bash">curl -s -H "Authorization: Bearer $WHYTHO_KEY" \
   "<span class="api-host"></span>/notes?path=/products/&amp;order=oldest&amp;limit=200" \
 | jq -r '.data[] | "## \(.path)\n\(.body)\n`\(.selector)`\n\(.status) &middot; \(.author)\n"'</code></pre>
 
         <h3>3. A daily digest of what changed</h3>
         <p>New notes since yesterday, ready to post into Slack or a standup.</p>
-        <pre><code>SINCE=$(date -u -v-1d +%Y-%m-%dT%H:%M:%SZ)   # GNU: date -u -d '1 day ago' +...
+        <pre><code data-lang="bash">SINCE=$(date -u -v-1d +%Y-%m-%dT%H:%M:%SZ)   # GNU: date -u -d '1 day ago' +...
 curl -s -H "Authorization: Bearer $WHYTHO_KEY" \
   "<span class="api-host"></span>/notes?since=$SINCE" \
 | jq -r '.data[] | "\(.author) on \(.path): \(.body)"'</code></pre>
 
         <h3>4. The open questions queue</h3>
         <p>Notes somebody could not resolve alone. Left unqueried, this is where knowledge goes to die.</p>
-        <pre><code>curl -s -H "Authorization: Bearer $WHYTHO_KEY" \
+        <pre><code data-lang="bash">curl -s -H "Authorization: Bearer $WHYTHO_KEY" \
   "<span class="api-host"></span>/notes?status=question" \
 | jq -r '.data[] | "\(.url)\n  \(.body)\n  asked by \(.author)\n"'</code></pre>
 
         <h3>5. Coverage: which important pages have no reasoning recorded</h3>
         <p>Compare your sitemap against the pages that carry notes. The gap is your documentation debt.</p>
-        <pre><code>import requests, xml.etree.ElementTree as ET
+        <pre><code data-lang="python">import requests, xml.etree.ElementTree as ET
 
 KEY = "why_live_..."
 API = "<span class="api-host"></span>"
@@ -301,7 +301,7 @@ for url in sorted(live - annotated):
 
         <h3>6. Pull everything, for a spreadsheet or a warehouse</h3>
         <p>Page through in blocks of 200 until a short page comes back.</p>
-        <pre><code>import requests, csv
+        <pre><code data-lang="python">import requests, csv
 
 KEY, API = "why_live_...", "<span class="api-host"></span>"
 rows, offset = [], 0
@@ -319,7 +319,7 @@ with open("notes.csv", "w", newline="") as f:
 
         <h3>7. Show the reasoning inside your own tools</h3>
         <p>The API allows browser requests, so an internal dashboard or a CMS sidebar can show the notes for whatever page an editor is looking at. Use a key scoped to the organization, and remember that a key in front-end code is readable by anyone who loads it, so only do this behind your own login.</p>
-        <pre><code>const notes = await fetch(
+        <pre><code data-lang="javascript">const notes = await fetch(
   `<span class="api-host"></span>/notes?path=${encodeURIComponent(location.pathname)}`,
   { headers: { Authorization: `Bearer ${KEY}` } }
 ).then(r =&gt; r.json());</code></pre>
