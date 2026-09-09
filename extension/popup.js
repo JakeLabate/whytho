@@ -3,7 +3,7 @@ function paint(connected, account) {
   document.getElementById('state').textContent = connected
     ? (account ? 'Signed in as ' + account : 'Connected to your account')
     : 'Not connected, notes stay in this browser';
-  document.getElementById('connect').textContent = connected ? 'Reconnect my account' : 'Connect my account';
+  document.getElementById('connect').textContent = connected ? 'Open WhyTho' : 'Open WhyTho to connect';
 }
 
 chrome.storage.sync.get(['token', 'account']).then(function (s) {

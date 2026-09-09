@@ -5,6 +5,7 @@
   'use strict';
 
   var CFG = window.WHY_CONFIG;
+  var BUILD = '3.1';
   var LOCAL_KEY = 'why:console:v1';
   var CATEGORY_LABELS = { seo: 'SEO', content: 'Content', tech: 'Technical', a11y: 'Accessibility', perf: 'Performance', ux: 'UX' };
   var CATEGORY_COLORS = { seo: '#5b21b6', content: '#0f766e', tech: '#b45309', a11y: '#be123c', perf: '#1d4ed8', ux: '#7c2d12' };
@@ -186,6 +187,11 @@
       "var s=document.createElement('script');s.src='" + src + "?t='+Date.now();" +
       (t ? "s.setAttribute('data-why-token','" + t + "');" : "") +
       "document.body.appendChild(s)})()";
+  }
+
+  function renderBuild() {
+    var b = $('#build-stamp');
+    if (b) b.textContent = 'Build ' + BUILD + (extVersion ? ', extension ' + extVersion : '');
   }
 
   function renderAccount() {
@@ -1283,7 +1289,7 @@
           .then(function () {
             applyAuthState();
             renderWho(); renderAccount(); renderWorkspace(); renderSetup();
-            renderLibrary(); renderInbox(); renderApi();
+            renderLibrary(); renderInbox(); renderApi(); renderBuild();
           });
       } else {
         token = null; profile = null; orgs = []; myRole = null;
