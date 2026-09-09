@@ -614,6 +614,142 @@
 
   /* ---------- library ---------- */
 
+  /* ---------- the notes tree ----------
+     Pages are grouped by site, then nested along their URL path, so /products/ sits
+     above /products/whytho/. Every level carries the totals of everything beneath it. */
+
+  function unreadByPage() {
+    var map = {};
+    inbox.forEach(function (n) {
+      if (n.read_at || !n.page_id) return;
+      map[n.page_id] = (map[n.page_id] || 0) + 1;
+    });
+    return map;
+  }
+
+  function buildTree(pages, counts, unread) {
+    var sites = {};
+    pages.forEach(function (p) {
+      var host = String(p.origin || '').replace(/^https?:\/\//, '');
+      var site = sites[host] || (sites[host] = { name: host, origin: p.origin, children: {}, page: null, updated: '' });
+      if ((p.updated_at || '') > site.updated) site.updated = p.updated_at || '';
+
+      var segs = String(p.path || '/').split('/').filter(Boolean);
+      var node = site, acc = '';
+      segs.forEach(function (seg) {
+        acc += '/' + seg;
+        node = node.children[seg] || (node.children[seg] = { name: seg, path: acc + '/', children: {}, page: null });
+      });
+      node.page = p;
+      node.notes = counts[p.id] || 0;
+      node.unread = unread[p.id] || 0;
+      node.scope = p.org_id ? (activeOrg() && p.org_id === activeOrg().id ? activeOrg().name : 'Shared') : 'Personal';
+    });
+    Object.keys(sites).forEach(function (k) { compress(sites[k]); total(sites[k]); });
+    return sites;
+  }
+
+  // A folder with no page of its own and a single child is a level that tells you
+  // nothing, so fold it into the child: /menu/ + wings/ becomes /menu/wings/.
+  function compress(node) {
+    Object.keys(node.children).forEach(function (k) {
+      var child = node.children[k];
+      compress(child);
+      var grandKeys = Object.keys(child.children);
+      if (!child.page && grandKeys.length === 1) {
+        var only = child.children[grandKeys[0]];
+        delete node.children[k];
+        node.children[only.path || grandKeys[0]] = only;
+      }
+    });
+  }
+
+  function total(node) {
+    var urls = node.page ? 1 : 0;
+    var notes = node.page ? (node.notes || 0) : 0;
+    var unread = node.page ? (node.unread || 0) : 0;
+    Object.keys(node.children).forEach(function (k) {
+      var t = total(node.children[k]);
+      urls += t.urls; notes += t.notes; unread += t.unread;
+    });
+    node.totals = { urls: urls, notes: notes, unread: unread };
+    return node.totals;
+  }
+
+  function countsLine(t) {
+    var bits = [t.urls + (t.urls === 1 ? ' URL' : ' URLs'), t.notes + (t.notes === 1 ? ' note' : ' notes')];
+    var html = '<span class="acc-counts">' + bits.join(' &middot; ') + '</span>';
+    if (t.unread) html += '<span class="acc-unread">' + t.unread + ' unread</span>';
+    return html;
+  }
+
+  function nodeElement(node, depth, onOpen) {
+    var kids = Object.keys(node.children).sort();
+    var t = node.totals;
+
+    // A leaf page is a row you click. Anything with children is an accordion.
+    if (!kids.length) {
+      var b = document.createElement('button');
+      b.className = 'acc-leaf';
+      b.style.paddingLeft = (14 + depth * 16) + 'px';
+      b.innerHTML = '<span class="acc-name">' + esc(node.path || '/') + '</span>' +
+        (node.scope ? '<span class="scope-tag">' + esc(node.scope) + '</span>' : '') +
+        '<span class="acc-right">' + countsLine(t) + '</span>';
+      if (node.page) b.addEventListener('click', function () { onOpen(node.page); });
+      return b;
+    }
+
+    var d = document.createElement('details');
+    d.className = 'acc';
+    if (t.unread) d.open = true;      // anything waiting on you opens itself
+    var sum = document.createElement('summary');
+    sum.style.paddingLeft = (14 + depth * 16) + 'px';
+    sum.innerHTML = '<span class="acc-name">' + esc(node.path || node.name) + '</span>' +
+      '<span class="acc-right">' + countsLine(t) + '</span>';
+    d.appendChild(sum);
+
+    if (node.page) {
+      var self = document.createElement('button');
+      self.className = 'acc-leaf acc-self';
+      self.style.paddingLeft = (14 + (depth + 1) * 16) + 'px';
+      self.innerHTML = '<span class="acc-name">' + esc(node.path) + '</span>' +
+        (node.scope ? '<span class="scope-tag">' + esc(node.scope) + '</span>' : '') +
+        '<span class="acc-right">' + countsLine({ urls: 1, notes: node.notes || 0, unread: node.unread || 0 }) + '</span>';
+      self.addEventListener('click', function () { onOpen(node.page); });
+      d.appendChild(self);
+    }
+
+    kids.forEach(function (k) { d.appendChild(nodeElement(node.children[k], depth + 1, onOpen)); });
+    return d;
+  }
+
+  function paintTree(wrap, pages, counts, unread, onOpen) {
+    var sites = buildTree(pages, counts, unread);
+    wrap.innerHTML = '';
+    Object.keys(sites)
+      .sort(function (a, b) { return (sites[b].updated || '').localeCompare(sites[a].updated || ''); })
+      .forEach(function (host) {
+        var site = sites[host];
+        var d = document.createElement('details');
+        d.className = 'acc acc-site';
+        if (site.totals.unread) d.open = true;
+        var sum = document.createElement('summary');
+        sum.innerHTML = '<span class="acc-host">' + esc(host) + '</span>' +
+          '<span class="acc-right">' + countsLine(site.totals) + '</span>';
+        d.appendChild(sum);
+        Object.keys(site.children).sort().forEach(function (k) {
+          d.appendChild(nodeElement(site.children[k], 1, onOpen));
+        });
+        if (site.page) {
+          var rootRow = nodeElement({ name: '/', path: '/', children: {}, page: site.page,
+            notes: site.notes, unread: site.unread, scope: site.scope,
+            totals: { urls: 1, notes: site.notes || 0, unread: site.unread || 0 } }, 1, onOpen);
+          d.insertBefore(rootRow, d.children[1] || null);
+        }
+        wrap.appendChild(d);
+      });
+  }
+
   function renderLibrary() {
     var wrap = $('#library-list');
     var scope = $('#notes-scope');
@@ -630,7 +766,11 @@
         wrap.innerHTML = '<div class="blank">Nothing here yet. Sign in above to save notes to your account, or annotate a page and choose <b>Send to console</b> to keep them in this browser.</div>';
         return;
       }
-      db.pages.forEach(function (p) { wrap.appendChild(row(p.path, p.origin, p.notes.length, p.updatedAt, function () { openLocal(pageId(p)); })); });
+      var localCounts = {}, ids = {};
+      db.pages.forEach(function (p) { p.id = pageId(p); localCounts[p.id] = p.notes.length; ids[p.id] = p; });
+      paintTree(wrap, db.pages.map(function (p) {
+        return { id: p.id, origin: p.origin, path: p.path, org_id: null, updated_at: p.updatedAt };
+      }), localCounts, {}, function (page) { openLocal(page.id); });
       var cta = document.createElement('div');
       cta.className = 'blank';
       cta.innerHTML = 'These notes are in this browser only. Sign in and they move to your account.';
@@ -649,28 +789,11 @@
       sb.from('why_notes').select('page_id').is('deleted_at', null).then(function (nres) {
         var counts = {};
         (nres.data || []).forEach(function (n) { counts[n.page_id] = (counts[n.page_id] || 0) + 1; });
-        wrap.innerHTML = '';
-        pages.forEach(function (p) {
-          var label = p.org_id ? (activeOrg() && p.org_id === activeOrg().id ? activeOrg().name : 'Shared') : 'Personal';
-          wrap.appendChild(row(p.path, p.origin, counts[p.id] || 0, p.updated_at, function () { openCloud(p); }, label));
-        });
+        paintTree(wrap, pages, counts, unreadByPage(), openCloud);
       });
     });
   }
 
-  function row(path, origin, count, updated, onClick, scope) {
-    var b = document.createElement('button');
-    b.className = 'page-row';
-    b.innerHTML =
-      '<span class="dot"></span>' +
-      '<span><span class="path">' + esc(path || '/') + '</span>' +
-      (scope ? '<span class="scope-tag">' + esc(scope) + '</span>' : '') +
-      '<br><span class="host">' + esc(String(origin || '').replace(/^https?:\/\//, '')) + '</span></span>' +
-      '<span class="count">' + count + ' note' + (count === 1 ? '' : 's') +
-      (updated ? ' &middot; ' + esc(new Date(updated).toLocaleDateString()) : '') + '</span>';
-    b.addEventListener('click', onClick);
-    return b;
-  }
 
   // Anything still sitting in this browser belongs on the account. Move it quietly.
   function absorbLocal() {
