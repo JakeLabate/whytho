@@ -14,8 +14,11 @@
 
 * { box-sizing: border-box; }
 
+html { overflow-x: clip; }
+
 body {
   margin: 0;
+  overflow-x: clip;
   background: var(--ground);
   color: var(--ink);
   font-family: var(--sans);
@@ -33,7 +36,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
   position: sticky; top: 0; background: var(--ground); z-index: 20;
 }
 .wordmark { font-family: var(--serif); font-weight: 700; font-size: 22px; letter-spacing: -0.01em; color: var(--ink); text-decoration: none; }
-.masthead nav { margin-left: auto; display: flex; gap: 20px; font-size: 15px; }
+.masthead nav { margin-left: auto; display: flex; gap: 20px; font-size: 15px; flex-wrap: wrap; justify-content: flex-end; }
 .masthead nav a { color: var(--ink-soft); text-decoration: none; }
 .masthead nav a:hover { color: var(--violet); }
 
@@ -89,20 +92,21 @@ p { max-width: 68ch; }
 .spec-note code, pre code, .note code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px;
   background: var(--ground-alt); padding: 3px 6px; border-radius: 4px; color: var(--ink-soft);
-  display: inline-block; word-break: break-all;
+  display: inline-block; max-width: 100%; overflow-wrap: anywhere; word-break: break-word;
 }
 
 .band { padding: 60px 0; border-top: 1px solid var(--line); }
 .band.alt { background: var(--ground-alt); border-top: 1px solid var(--line); margin: 0 -32px; padding-left: 32px; padding-right: 32px; }
 
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 26px 0 8px; }
-.card { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 20px; }
+.two > * { min-width: 0; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 20px; min-width: 0; }
 .card p { font-size: 15px; color: var(--ink-soft); }
-pre { margin: 0 0 12px; background: var(--ground-alt); border-radius: 8px; padding: 12px; overflow-x: auto; }
-pre code { background: none; padding: 0; font-size: 12.5px; color: var(--ink); }
+pre { margin: 0 0 12px; background: var(--ground-alt); border-radius: 8px; padding: 12px; max-width: 100%; overflow-x: auto; }
+pre code { background: none; padding: 0; font-size: 12.5px; color: var(--ink); display: block; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .bookmarklet {
-  display: inline-block; background: var(--ink); color: #fff; text-decoration: none;
+  display: inline-block; max-width: 100%; background: var(--ink); color: #fff; text-decoration: none;
   font-size: 14px; font-weight: 500; padding: 9px 15px; border-radius: 8px; cursor: grab;
 }
 
@@ -125,6 +129,7 @@ ul.plain li { margin-bottom: 12px; color: var(--ink-soft); }
   text-align: left; width: 100%; font: inherit; color: inherit;
 }
 .page-row:hover { border-color: #c8bfd8; }
+.page-row > span { min-width: 0; overflow-wrap: anywhere; }
 .page-row .path { font-weight: 500; }
 .page-row .host { font-size: 13px; color: var(--ink-soft); }
 .page-row .count { margin-left: auto; font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
@@ -139,7 +144,9 @@ ul.plain li { margin-bottom: 12px; color: var(--ink-soft); }
 }
 
 /* viewer */
-.viewer-head { display: flex; align-items: flex-start; gap: 16px; }
+.viewer-head { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.viewer-head > div { min-width: 0; }
+#viewer-url { overflow-wrap: anywhere; }
 .viewer-head button { margin-left: auto; }
 .exports { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0 24px; }
 #viewer-notes { display: grid; gap: 12px; }
@@ -169,10 +176,11 @@ footer p { font-size: 14px; color: var(--ink-soft); max-width: none; margin: 0; 
 
 /* account */
 .account-box { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin-top: 20px; max-width: 620px; }
-.acct-row { display: flex; align-items: center; gap: 16px; }
+.acct-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.acct-row > div { min-width: 0; overflow-wrap: anywhere; }
 .acct-row .sub { font-size: 13px; }
 .auth { display: grid; gap: 10px; }
-.auth input { font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--ground); color: var(--ink); }
+.auth input { max-width: 100%; font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--ground); color: var(--ink); }
 .auth-actions { display: flex; gap: 8px; }
 .auth .sub { margin: 2px 0 0; }
 #bookmarklet-state { font-size: 13px; margin: 10px 0; }
