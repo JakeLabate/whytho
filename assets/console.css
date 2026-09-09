@@ -280,3 +280,6 @@ body.doc main { max-width: 1080px; }
 .notif-body { font-size: 15px; margin: 7px 0; }
 .notif-foot { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .tagged { color: var(--violet); font-weight: 600; }
+
+.scope-tag { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px;
+  background: var(--ground-alt); color: var(--ink-soft); font-size: 11px; vertical-align: 2px; }

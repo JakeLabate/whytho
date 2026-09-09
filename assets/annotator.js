@@ -9,7 +9,7 @@
 
   var CONSOLE_URL = 'https://whytho.jakelabate.com/';
   var SYNC_URL = 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync';
-  var VERSION = '2.1';
+  var VERSION = '2.2';
   var STORE_PREFIX = 'why:v1:';
   var CATEGORIES = [
     { id: 'seo', label: 'SEO', color: '#5b21b6' },
@@ -621,9 +621,14 @@
     pick.addEventListener('click', function () { setPicking(!picking); });
     var list = el('button', '', (panelOpen ? 'Hide notes' : 'Show notes') + ' (' + doc.notes.length + ')');
     list.addEventListener('click', function () { panelOpen = !panelOpen; render(); });
-    var send = el('button', '', 'Send to console');
-    send.title = 'Open the console with these notes attached.';
-    send.addEventListener('click', sendToConsole);
+    var send = el('button', '', TOKEN ? 'Open console' : 'Sign in to save these');
+    send.title = TOKEN
+      ? 'Open WhyTho in a new tab.'
+      : 'These notes are only in this browser. Signing in moves them to your account.';
+    send.addEventListener('click', function () {
+      if (TOKEN) window.open(CONSOLE_URL, '_blank', 'noopener');
+      else sendToConsole();   // nothing is signed in yet, so carry them across by hand
+    });
     var off = el('button', '', 'Close');
     off.addEventListener('click', function () { publicApi.off(); });
     var vpn = el('span', 'vp', (identity.org_name ? identity.org_name + '  ' : '') + vp.breakpoint + ' ' + vp.width + 'px');

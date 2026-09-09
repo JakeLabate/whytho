@@ -75,7 +75,6 @@
     });
     saveLocal(db);
     if (user) {
-      toast('Importing ' + added + ' note' + (added === 1 ? '' : 's') + ' into your account.');
       uploadLocal();
     } else {
       renderLibrary();
@@ -538,7 +537,6 @@
       var pages = res.data || [];
       if (!pages.length) {
         wrap.innerHTML = '<div class="blank">No pages yet. Run the bookmarklet on a page, leave a note, and it lands here.</div>';
-        maybeOfferUpload();
         return;
       }
       sb.from('why_notes').select('page_id').is('deleted_at', null).then(function (nres) {
@@ -547,41 +545,38 @@
         wrap.innerHTML = '';
         pages.forEach(function (p) {
           var label = p.org_id ? (activeOrg() && p.org_id === activeOrg().id ? activeOrg().name : 'Shared') : 'Personal';
-          wrap.appendChild(row(p.path, p.origin + '  ' + label, counts[p.id] || 0, p.updated_at, function () { openCloud(p); }));
+          wrap.appendChild(row(p.path, p.origin, counts[p.id] || 0, p.updated_at, function () { openCloud(p); }, label));
         });
-        maybeOfferUpload();
       });
     });
   }
 
-  function row(path, origin, count, updated, onClick) {
+  function row(path, origin, count, updated, onClick, scope) {
     var b = document.createElement('button');
     b.className = 'page-row';
     b.innerHTML =
       '<span class="dot"></span>' +
-      '<span><span class="path">' + esc(path || '/') + '</span><br><span class="host">' +
-      esc(String(origin || '').replace(/^https?:\/\//, '')) + '</span></span>' +
+      '<span><span class="path">' + esc(path || '/') + '</span>' +
+      (scope ? '<span class="scope-tag">' + esc(scope) + '</span>' : '') +
+      '<br><span class="host">' + esc(String(origin || '').replace(/^https?:\/\//, '')) + '</span></span>' +
       '<span class="count">' + count + ' note' + (count === 1 ? '' : 's') +
       (updated ? ' &middot; ' + esc(new Date(updated).toLocaleDateString()) : '') + '</span>';
     b.addEventListener('click', onClick);
     return b;
   }
 
-  function maybeOfferUpload() {
+  // Anything still sitting in this browser belongs on the account. Move it quietly.
+  function absorbLocal() {
+    if (!user) return Promise.resolve();
     var db = localDb();
-    if (!db.pages.length || !user) return;
-    var n = db.pages.reduce(function (a, p) { return a + p.notes.length; }, 0);
-    var el = document.createElement('div');
-    el.className = 'blank';
-    el.innerHTML = n + ' note' + (n === 1 ? '' : 's') + ' from this browser are not on your account yet. ' +
-      '<button class="btn small" id="upload-local">Move them to my account</button>';
-    $('#library-list').appendChild(el);
-    $('#upload-local').addEventListener('click', uploadLocal);
+    if (!db.pages.length) return Promise.resolve();
+    return uploadLocal(true);
   }
 
-  function uploadLocal() {
+  function uploadLocal(quiet) {
     var db = localDb();
-    if (!db.pages.length) return;
+    if (!db.pages.length) return Promise.resolve();
+    var moved = db.pages.reduce(function (a, p) { return a + p.notes.length; }, 0);
     var jobs = db.pages.map(function (p) {
       var orgId = profile ? profile.active_org_id : null;
       return sb.from('why_pages').upsert(
@@ -605,11 +600,11 @@
         return sb.from('why_notes').upsert(rows, { onConflict: 'user_id,client_id' });
       });
     });
-    Promise.all(jobs).then(function (results) {
+    return Promise.all(jobs).then(function (results) {
       var failed = results.filter(function (r) { return r && r.error; });
-      if (failed.length) { toast('Upload failed: ' + failed[0].error.message); renderLibrary(); return; }
+      if (failed.length) { toast('Could not move local notes: ' + failed[0].error.message); renderLibrary(); return; }
       localStorage.removeItem(LOCAL_KEY);
-      toast('Notes saved to your account.');
+      toast(moved + ' note' + (moved === 1 ? '' : 's') + ' from this browser moved to your account.');
       renderLibrary();
     });
   }
@@ -752,6 +747,7 @@
       if (user) {
         ensureToken()
           .then(loadWorkspace)
+          .then(absorbLocal)
           .then(loadInbox)
           .then(function () {
             applyAuthState();
