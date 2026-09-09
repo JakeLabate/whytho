@@ -360,25 +360,35 @@
     if (!box) return;
     detectExtension();
 
+    var latest = CFG.extensionVersion || '';
+    var stale = extVersion && latest && extVersion !== latest;
+
+    var install =
+      '<div class="ext-install">' +
+      '<a class="btn small" href="whytho-extension.zip" download>Download the extension</a>' +
+      '<a class="btn quiet small" href="install.html">Full install instructions</a>' +
+      '</div>' +
+      '<ol class="steps ext-steps">' +
+      '<li>Unzip it and keep the folder somewhere permanent. Chrome reads it from disk on every start.</li>' +
+      '<li>Open <code>chrome://extensions</code> and turn on <b>Developer mode</b>, top right.</li>' +
+      '<li>Choose <b>Load unpacked</b> and pick the folder, not the zip.</li>' +
+      '<li>Come back here and press <b>Connect this account</b>.</li>' +
+      '</ol>' +
+      '<p class="sub">Chrome, Edge, Brave and Arc take this package. Firefox and Safari need their own builds, so use the bookmarklet there. Share <b>whytho.jakelabate.com/install.html</b> with anyone else who needs it.</p>';
+
     if (!extVersion) {
       box.innerHTML =
-        '<div class="ext-row"><span class="ext-dot"></span><span>Not installed in this browser</span></div>' +
-        '<p><a class="btn small" href="whytho-extension.zip" download>Download the extension</a></p>' +
-        '<ol class="steps ext-steps">' +
-        '<li>Unzip it somewhere you will not delete by accident.</li>' +
-        '<li>Open <code>chrome://extensions</code> and turn on <b>Developer mode</b>, top right.</li>' +
-        '<li>Choose <b>Load unpacked</b> and pick the unzipped folder.</li>' +
-        '<li>Come back here and press <b>Connect this account</b>. It will appear once the extension is installed.</li>' +
-        '</ol>' +
-        '<p class="sub">Chrome, Edge, Brave and Arc all take this package. Firefox and Safari need their own builds, so use the bookmarklet there for now.</p>';
+        '<div class="ext-row"><span class="ext-dot"></span><span>Not installed in this browser</span></div>' + install;
       return;
     }
 
     box.innerHTML =
       '<div class="ext-row"><span class="ext-dot on"></span><span>Installed, version ' + esc(extVersion) +
       (extConnected ? '. Connected to your account.' : '. Not connected to your account yet.') + '</span></div>' +
+      (stale ? '<p class="warn-inline">Version ' + esc(latest) + ' is available. Download it below, replace the folder, then press the reload arrow on the extension card in chrome://extensions.</p>' : '') +
       '<button class="btn small" id="ext-connect">' + (extConnected ? 'Reconnect this account' : 'Connect this account') + '</button>' +
-      '<p class="sub">Connecting hands the extension the same annotator token the bookmarklet uses. Nothing else is shared with it.</p>';
+      '<p class="sub">Connecting hands the extension the same annotator token the bookmarklet uses. Nothing else is shared with it.</p>' +
+      '<details class="ext-more"><summary>Install it somewhere else, or send it to someone</summary>' + install + '</details>';
 
     $('#ext-connect').addEventListener('click', function () {
       if (!token) { toast('Still setting up your account, try again in a moment.'); return; }

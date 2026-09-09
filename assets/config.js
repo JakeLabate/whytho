@@ -5,5 +5,6 @@ window.WHY_CONFIG = {
   supabaseUrl: 'https://vvekkbboqqkxnlpmxazh.supabase.co',
   publishableKey: 'sb_publishable_jS0s7lenxSg1CZ9z6qsq4w_bghFxM89',
   syncUrl: 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync',
-  consoleUrl: 'https://whytho.jakelabate.com/'
+  consoleUrl: 'https://whytho.jakelabate.com/',
+  extensionVersion: '3.1.0'
 };

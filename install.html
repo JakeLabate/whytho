@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install the WhyTho extension</title>
+<meta name="description" content="How to install the WhyTho browser extension in Chrome, Edge, Brave or Arc, and connect it to your account.">
+<link rel="canonical" href="https://whytho.jakelabate.com/install.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/console.css?v=31">
+</head>
+<body class="doc">
+
+<header class="masthead">
+  <a class="wordmark" href="./">WhyTho</a>
+  <nav>
+    <a href="about.html">How it works</a>
+    <a href="./">Open the app</a>
+  </nav>
+</header>
+
+<main>
+  <section class="band" style="border-top:0">
+    <h1 style="max-width:20ch">Install the extension</h1>
+    <p class="lede">Two minutes. It puts a WhyTho button on your browser toolbar, so any page is one click from being annotated.</p>
+    <p><a class="btn" href="whytho-extension.zip" download>Download whytho-extension.zip</a></p>
+    <p class="sub">Works in Chrome, Edge, Brave and Arc. Firefox and Safari need their own builds, so use the <a href="./#/setup">bookmarklet</a> there.</p>
+  </section>
+
+  <section class="band alt">
+    <h2>Install it</h2>
+    <ol class="steps">
+      <li>Download the file above, then double-click it to unzip. You get a folder called <code>whytho-extension</code>.</li>
+      <li>Move that folder somewhere permanent, like your Documents. Chrome reads it from disk every time it starts, so it cannot live in a Downloads folder you clear out.</li>
+      <li>Open a new tab and go to <code>chrome://extensions</code>. In Edge use <code>edge://extensions</code>, in Brave <code>brave://extensions</code>.</li>
+      <li>Turn on <b>Developer mode</b> with the switch in the top right.</li>
+      <li>Click <b>Load unpacked</b> and choose the folder. Pick the folder itself, not the zip, and not a file inside it.</li>
+      <li>Click the puzzle piece in your toolbar and pin WhyTho so the icon stays visible.</li>
+    </ol>
+  </section>
+
+  <section class="band">
+    <h2>Connect your account</h2>
+    <ol class="steps">
+      <li>Open <a href="./">whytho.jakelabate.com</a> and sign in, with GitHub or an email link.</li>
+      <li>Go to <b>Setup</b>. The first card will say the extension is installed.</li>
+      <li>Press <b>Connect this account</b>. It hands the extension your annotator token, and nothing else.</li>
+    </ol>
+    <p>Until you do that, the extension still works, but notes stay in that browser instead of saving to your account.</p>
+  </section>
+
+  <section class="band alt">
+    <h2>Using it</h2>
+    <ul class="plain">
+      <li>Click the toolbar icon on any page, or press <kbd>Alt</kbd> <kbd>Shift</kbd> <kbd>W</kbd>.</li>
+      <li>Choose <b>Select</b>, click an element, write why it is the way it is, and save.</li>
+      <li>The note is attributed to you automatically and appears in the app under Notes.</li>
+    </ul>
+  </section>
+
+  <section class="band">
+    <h2>Worth knowing about sideloading</h2>
+    <ul class="plain">
+      <li><strong>Chrome will warn you once per restart.</strong> A banner saying to disable developer mode extensions is normal for anything installed this way. Dismiss it, or use Keep.</li>
+      <li><strong>It does not update itself.</strong> When WhyTho changes you download the zip again, replace the folder contents, and press the reload arrow on the extension card. The app tells you when your version is behind.</li>
+      <li><strong>A managed work laptop may block it.</strong> Some company policies disable unpacked extensions entirely. The bookmarklet is the fallback there.</li>
+      <li><strong>What it can reach.</strong> It asks for <code>activeTab</code> and <code>scripting</code>, so it can only touch a page after you click the icon or press the shortcut. Its one standing permission is whytho.jakelabate.com, used to pick up your token.</li>
+    </ul>
+  </section>
+</main>
+
+<footer>
+  <p>WhyTho, built by Jake Labate, SEO Consultant. <a href="https://www.jakelabate.com/">jakelabate.com</a></p>
+</footer>
+
+</body>
+</html>

@@ -408,3 +408,7 @@ body.doc main { max-width: 1080px; }
 .ext-steps { margin-top: 14px; }
 .ext-steps li { font-size: 14.5px; }
 kbd { font-family: ui-monospace, Menlo, monospace; font-size: 12px; background: var(--ground-alt); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; }
+
+.ext-install { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+.ext-more { margin-top: 16px; }
+.ext-more summary { cursor: pointer; font-size: 14px; color: var(--violet); }
