@@ -9,14 +9,17 @@
 
   var CONSOLE_URL = 'https://whytho.jakelabate.com/';
   var SYNC_URL = 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync';
-  var VERSION = '3.0';
+  var VERSION = '3.1';
 
   var SVG = {
     cursor: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 1.5l9.5 5.6-4.1 1-2.2 4z"/></svg>',
     close: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path stroke="currentColor" stroke-width="1.7" fill="none" d="M4 4l8 8M12 4l-8 8"/></svg>',
     list: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path stroke="currentColor" stroke-width="1.6" fill="none" d="M2.5 4h11M2.5 8h11M2.5 12h7"/></svg>',
     more: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><circle fill="currentColor" cx="3" cy="8" r="1.4"/><circle fill="currentColor" cx="8" cy="8" r="1.4"/><circle fill="currentColor" cx="13" cy="8" r="1.4"/></svg>',
-    trash: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path stroke="currentColor" stroke-width="1.4" fill="none" d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8h5.8l.6-8M6.7 7v3.4M9.3 7v3.4"/></svg>'
+    trash: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path stroke="currentColor" stroke-width="1.4" fill="none" d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8h5.8l.6-8M6.7 7v3.4M9.3 7v3.4"/></svg>',
+    phone: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect x="4.5" y="2" width="7" height="12" rx="1.6" stroke="currentColor" stroke-width="1.3" fill="none"/><path stroke="currentColor" stroke-width="1.3" d="M7 12.2h2"/></svg>',
+    screen: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect x="1.8" y="3" width="12.4" height="8.4" rx="1.3" stroke="currentColor" stroke-width="1.3" fill="none"/><path stroke="currentColor" stroke-width="1.3" d="M6 13.6h4"/></svg>',
+    hidden: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path stroke="currentColor" stroke-width="1.3" fill="none" d="M2 8s2.4-3.8 6-3.8S14 8 14 8s-2.4 3.8-6 3.8S2 8 2 8z"/><path stroke="currentColor" stroke-width="1.3" d="M3 13L13 3"/></svg>'
   };
   var STORE_PREFIX = 'why:v1:';
   var CATEGORIES = [
@@ -28,6 +31,12 @@
     { id: 'ux', label: 'UX', color: '#7c2d12' }
   ];
   var STATUSES = ['decided', 'proposed', 'question', 'do not change'];
+  var WIDTHS = [
+    { id: 'mobile', label: 'Mobile', px: 390, h: 844 },
+    { id: 'tablet', label: 'Tablet', px: 820, h: 1024 },
+    { id: 'laptop', label: 'Laptop', px: 1280, h: 800 },
+    { id: 'desktop', label: 'Desktop', px: 1512, h: 900 }
+  ];
 
   /* ---------- utilities ---------- */
 
@@ -49,6 +58,54 @@
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
+  }
+
+  function scopeOf(n) {
+    var a = n.appliesTo || n.applies_to;
+    return (Array.isArray(a) && a.length) ? a : ['all'];
+  }
+
+  function inScope(n, bp) {
+    var a = scopeOf(n);
+    return a.indexOf('all') > -1 || a.indexOf(bp) > -1;
+  }
+
+  function scopeLabel(n) {
+    var a = scopeOf(n);
+    if (a.indexOf('all') > -1) return 'All widths';
+    return a.map(function (id) {
+      var hit = 'Other';
+      WIDTHS.forEach(function (w) { if (w.id === id) hit = w.label; });
+      return hit;
+    }).join(', ') + ' only';
+  }
+
+  // A real window at a real width, so media queries fire honestly. Same origin,
+  // so this window can load the annotator into it.
+  function openAtWidth(px, h) {
+    var win = window.open(location.href, '_blank', 'width=' + px + ',height=' + (h || 844) + ',scrollbars=yes');
+    if (!win) { toast('Your browser blocked the new window. Allow popups for this site and try again.'); return; }
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries++;
+      var done = false;
+      try {
+        if (win.closed) { done = true; }
+        else if (win.document && win.document.readyState === 'complete' && win.document.body) {
+          if (!win.__why__) {
+            var sc = win.document.createElement('script');
+            sc.src = SRC + '?t=' + Date.now();
+            if (TOKEN) sc.setAttribute('data-why-token', TOKEN);
+            win.document.body.appendChild(sc);
+          }
+          done = true;
+        }
+      } catch (e) {
+        done = true;   // different origin after a redirect, nothing more we can do
+        toast('Opened in a new window. Start WhyTho there with your bookmarklet.');
+      }
+      if (done || tries > 40) clearInterval(timer);
+    }, 250);
   }
 
   function breakpoint(w) {
@@ -181,11 +238,16 @@
      annotator token rather than a Supabase session. The token arrives in the
      personal bookmarklet and is kept on this origin so later runs stay signed in. */
 
+  var SRC = CONSOLE_URL.replace(/\/$/, '') + '/assets/annotator.js';
+
   var TOKEN = (function () {
     var fromScript = null;
     try {
       var cur = document.currentScript || document.querySelector('script[data-why-token]');
-      if (cur) fromScript = cur.getAttribute('data-why-token');
+      if (cur) {
+        fromScript = cur.getAttribute('data-why-token');
+        if (cur.src) SRC = cur.src.split('?')[0];
+      }
     } catch (e) { }
     if (fromScript) {
       try { localStorage.setItem('why:token', fromScript); } catch (e) { }
@@ -208,7 +270,16 @@
       url: location.href,
       title: document.title
     };
-    if (extra) for (var k in extra) body[k] = extra[k];
+    if (extra) {
+      if (extra.notes) extra.notes = extra.notes.map(function (n) {
+        return {
+          id: n.id, selector: n.selector, fallbackSelector: n.fallbackSelector, tag: n.tag,
+          textSnippet: n.textSnippet, category: n.category, status: n.status, body: n.body,
+          appliesTo: scopeOf(n), viewport: n.viewport, createdAt: n.createdAt
+        };
+      });
+      for (var k in extra) body[k] = extra[k];
+    }
 
     // text/plain keeps this a simple request, so there is no CORS preflight to lose.
     // The function parses the body as JSON regardless of the content type it arrives with.
@@ -272,6 +343,7 @@
 
   function fromRow(r) {
     return {
+      appliesTo: Array.isArray(r.applies_to) ? r.applies_to : ['all'],
       author: r.author || '',
       team: r.team_name || null,
       mine: r.mine !== false,
@@ -479,6 +551,37 @@
   .pop-read { font-size: 14px; line-height: 1.55; white-space: pre-wrap; }
   .pop-by { font-size: 11.5px; color: #6b6480; margin-top: 9px; }
   .pop .mentions { position: static; margin-top: 6px; box-shadow: none; }
+  .pop-label { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: #6b6480; margin: 11px 0 6px; }
+  .pop-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip-w { font: inherit; font-size: 11px; border: 1px solid #ddd7ce; background: #fff; color: #4a4560; border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+  .chip-w:hover { border-color: #b9b0d8; }
+  .chip-w.on { background: #5b21b6; border-color: #5b21b6; color: #fff; }
+
+  .seg { display: inline-flex; height: 30px; border-radius: 8px; overflow: hidden; }
+  .bar .seg-b { height: 30px; border-radius: 0; background: #2e2a48; font-size: 11.5px; padding: 0 10px; }
+  .bar .seg-b.on { background: #7c3aed; color: #fff; }
+
+  .pin.ghost { border: 2px dashed #b9b2d6; box-shadow: none; }
+
+  .scope-badge { display: inline-block; margin-top: 7px; font-size: 9.5px; background: #f3f0eb; color: #4a4560; border-radius: 999px; padding: 2px 8px; }
+  .scope-badge.out { background: #ede9fe; color: #4c1d95; }
+
+  .tray {
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: 74px; width: 420px; max-width: calc(100vw - 24px);
+    background: #fff; border: 1px solid #ddd7ce; border-radius: 12px; box-shadow: 0 12px 34px rgba(15,23,42,.2);
+    pointer-events: auto; overflow: hidden;
+  }
+  .tray-head { padding: 11px 13px 9px; border-bottom: 0.5px solid #e6e1da; }
+  .tray-head b { display: block; font-size: 13px; color: #1c1a2e; }
+  .tray-head span { display: block; font-size: 11.5px; color: #6b6480; margin-top: 2px; }
+  .tray-row { display: flex; align-items: flex-start; gap: 9px; padding: 10px 13px; border-bottom: 0.5px solid #f0ece5; }
+  .tray-row:last-child { border-bottom: 0; }
+  .tray-pin { width: 18px; height: 18px; border-radius: 50% 50% 50% 3px; color: #fff; font-size: 10px; display: grid; place-items: center; flex: none; margin-top: 1px; }
+  .tray-body { flex: 1; min-width: 0; display: block; }
+  .tray-text { display: block; font-size: 12.5px; color: #1c1a2e; }
+  .tray-meta { display: block; font-size: 10.5px; color: #6b6480; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tray-go { font: inherit; font-size: 11px; border: 1px solid #ddd7ce; background: #fff; color: #4a4560; border-radius: 7px; padding: 5px 10px; cursor: pointer; flex: none; }
+  .tray-go:hover { background: #f6f3ee; }
 
   .panel { position: fixed; top: 0; right: 0; width: 380px; max-width: 100vw; height: 100%; background: #fbfaf8; color: #1c1a2e; pointer-events: auto; display: flex; flex-direction: column; box-shadow: -12px 0 40px rgba(15,23,42,.18); }
   .panel header { padding: 14px 16px; border-bottom: 1px solid #e6e1da; display: flex; align-items: center; gap: 8px; }
@@ -551,6 +654,7 @@
   var picking = false;
   var panelOpen = true;
   var filter = 'all';
+  var widthMode = 'this';   // 'this' scopes pins to the current breakpoint, 'all' shows every note
   var editing = null;      // note being composed or edited
   var editingEl = null;    // the element it is anchored to
   var pinNodes = [];
@@ -630,7 +734,7 @@
     for (var i = 0; i < pinNodes.length; i++) {
       var p = pinNodes[i];
       var target = resolve(p.note);
-      if (!target) { p.node.classList.add('orphan'); p.node.style.left = '8px'; p.node.style.top = (8 + i * 28) + 'px'; continue; }
+      if (!target) { p.node.style.display = 'none'; continue; }
       var r = target.getBoundingClientRect();
       var visible = r.bottom > 0 && r.top < window.innerHeight && r.width + r.height > 0;
       p.node.style.display = visible ? 'grid' : 'none';
@@ -651,17 +755,26 @@
     pinNodes = [];
     var vp = viewportSnapshot();
     doc.notes.forEach(function (n, idx) {
+      var here = inScope(n, vp.breakpoint);
+      if (!here && widthMode === 'this' && !resolve(n)) return;   // it lives in the tray instead
+
       var node = el('div', 'pin');
       node.textContent = String(idx + 1);
       node.style.background = catOf(n.category).color;
-      node.title = n.body.slice(0, 80);
+      node.title = n.body.slice(0, 80) + '  (' + scopeLabel(n) + ')';
       if (filter !== 'all' && n.category !== filter) node.classList.add('dim');
-      if (n.viewport && n.viewport.breakpoint !== vp.breakpoint) node.classList.add('dim');
+      if (!here) { node.classList.add('ghost'); node.style.background = '#fff'; node.style.color = '#6b6480'; }
       node.addEventListener('click', function (e) { e.stopPropagation(); focusNote(n.id); });
       layer.appendChild(node);
       pinNodes.push({ note: n, node: node });
     });
     layoutPins();
+  }
+
+  // Notes whose element is not on the page at this width. They have nothing to
+  // point at, so without somewhere to live they would simply disappear.
+  function homeless() {
+    return doc.notes.filter(function (n) { return !resolve(n); });
   }
 
   /* ---------- panel ---------- */
@@ -689,6 +802,35 @@
     list.title = (panelOpen ? 'Hide' : 'Show') + ' all notes on this page';
     list.addEventListener('click', function () { panelOpen = !panelOpen; render(); });
 
+    var seg = el('span', 'seg');
+    var here = el('button', 'seg-b' + (widthMode === 'this' ? ' on' : ''), 'This width');
+    here.title = 'Only show notes that apply at ' + viewportSnapshot().breakpoint + ' widths';
+    here.addEventListener('click', function () { widthMode = 'this'; render(); });
+    var every = el('button', 'seg-b' + (widthMode === 'all' ? ' on' : ''), 'All');
+    every.title = 'Show every note on this page, whatever width it is about';
+    every.addEventListener('click', function () { widthMode = 'all'; render(); });
+    seg.appendChild(here); seg.appendChild(every);
+
+    var narrow = window.innerWidth < 640;
+    var device = el('button', 'b-icon');
+    device.innerHTML = '<span class="ico">' + (narrow ? SVG.screen : SVG.phone) + '</span>';
+    device.title = narrow
+      ? 'Open this page in a window at 1280px'
+      : 'Open this page in a real window at 390px, with WhyTho running';
+    device.addEventListener('click', function () {
+      var w = narrow ? WIDTHS[2] : WIDTHS[0];
+      openAtWidth(w.px, w.h);
+    });
+
+    var lost = homeless().length;
+    var tray = null;
+    if (lost) {
+      tray = el('button', 'b-icon' + (trayOpen ? ' on' : ''));
+      tray.innerHTML = '<span class="ico">' + SVG.hidden + '</span><span class="num">' + lost + '</span>';
+      tray.title = lost + (lost === 1 ? ' note has' : ' notes have') + ' no element at this width';
+      tray.addEventListener('click', function () { trayOpen = !trayOpen; render(); });
+    }
+
     var dotState = { cloud: 'ok', syncing: 'busy', offline: 'bad', error: 'bad', local: 'idle' }[syncState];
     var dotLabel = {
       cloud: 'Saved to your account',
@@ -715,6 +857,9 @@
     bar.appendChild(el('span', 'sep'));
     bar.appendChild(pick);
     bar.appendChild(list);
+    bar.appendChild(seg);
+    bar.appendChild(device);
+    if (tray) bar.appendChild(tray);
     bar.appendChild(dot);
     bar.appendChild(more);
     layer.appendChild(bar);
@@ -723,6 +868,8 @@
 
   var menuOpen = false;
   var menuNode = null;
+  var trayOpen = false;
+  var trayNode = null;
 
   function toggleMenu() { menuOpen = !menuOpen; buildBar(); }
 
@@ -743,6 +890,37 @@
       menuNode.appendChild(row);
     });
     bar.appendChild(menuNode);
+  }
+
+  function buildTray() {
+    if (trayNode) { trayNode.remove(); trayNode = null; }
+    var lost = homeless();
+    if (!trayOpen || !lost.length) return;
+
+    trayNode = el('div', 'tray');
+    var head = el('div', 'tray-head');
+    head.innerHTML = '<b>' + lost.length + (lost.length === 1 ? ' note has' : ' notes have') +
+      ' no element at this width</b><span>They were written somewhere this page does not render right now.</span>';
+    trayNode.appendChild(head);
+
+    lost.forEach(function (n) {
+      var row = el('div', 'tray-row');
+      var w = n.viewport && n.viewport.width ? n.viewport.width : null;
+      row.innerHTML =
+        '<span class="tray-pin" style="background:' + catOf(n.category).color + '">' +
+        (doc.notes.indexOf(n) + 1) + '</span>' +
+        '<span class="tray-body"><span class="tray-text">' + esc(n.body.slice(0, 90)) + '</span>' +
+        '<span class="tray-meta">' + esc(scopeLabel(n)) +
+        (w ? ' \u00b7 seen at ' + w + 'px' : '') + ' \u00b7 ' + esc(n.selector.slice(0, 46)) + '</span></span>';
+      if (w && Math.abs(w - window.innerWidth) > 80) {
+        var go = el('button', 'tray-go', 'Show me');
+        go.title = 'Open this page in a window at ' + w + 'px';
+        go.addEventListener('click', function () { openAtWidth(w, (n.viewport && n.viewport.height) || 844); });
+        row.appendChild(go);
+      }
+      trayNode.appendChild(row);
+    });
+    layer.appendChild(trayNode);
   }
 
   function buildPanel() {
@@ -794,6 +972,7 @@
         '<span>' + esc(n.status) + '</span><span style="margin-left:auto">' + esc(vpTxt) + '</span></div>' +
         '<div class="body">' + withMentions(n.body) + '</div>' +
         '<code>' + esc(n.selector) + '</code>' +
+        '<div class="scope-badge' + (inScope(n, viewportSnapshot().breakpoint) ? '' : ' out') + '">' + esc(scopeLabel(n)) + '</div>' +
         '<div class="top" style="margin-top:8px">' +
         '<span><b>' + esc(n.author || 'you') + '</b>' + (n.team ? ' &middot; ' + esc(n.team) : '') + '</span>' +
         '<span>' + esc(new Date(n.createdAt).toLocaleDateString()) + '</span>' +
@@ -831,6 +1010,7 @@
       textSnippet: snippet(target),
       category: 'seo',
       status: 'decided',
+      appliesTo: ['all'],
       body: '',
       author: identity.author || '',
       mine: true,
@@ -892,7 +1072,8 @@
       composer.appendChild(el('div', 'pop-read', esc(n.body)));
       composer.appendChild(el('div', 'pop-by',
         '<b>' + esc(n.author || 'Unknown') + '</b>' + (n.team ? ' \u00b7 ' + esc(n.team) : '') +
-        ' \u00b7 ' + esc(catOf(n.category).label) + ' \u00b7 ' + esc(n.status)));
+        ' \u00b7 ' + esc(catOf(n.category).label) + ' \u00b7 ' + esc(n.status) +
+        ' \u00b7 ' + esc(scopeLabel(n))));
       layer.appendChild(composer);
       positionPopover();
       return;
@@ -959,6 +1140,32 @@
     });
     ta.addEventListener('blur', closePicker);
 
+    var scope = scopeOf(n).slice();
+    composer.appendChild(el('div', 'pop-label', 'Applies to'));
+    var chips = el('div', 'pop-chips');
+
+    function paintChips() {
+      chips.innerHTML = '';
+      var opts = [{ id: 'all', label: 'All widths' }].concat(WIDTHS);
+      opts.forEach(function (o) {
+        var on = scope.indexOf(o.id) > -1;
+        var b = el('button', 'chip-w' + (on ? ' on' : ''), esc(o.label));
+        b.addEventListener('click', function () {
+          if (o.id === 'all') { scope = ['all']; }
+          else {
+            scope = scope.filter(function (x) { return x !== 'all'; });
+            var at = scope.indexOf(o.id);
+            if (at > -1) scope.splice(at, 1); else scope.push(o.id);
+            if (!scope.length) scope = ['all'];
+          }
+          paintChips();
+        });
+        chips.appendChild(b);
+      });
+    }
+    paintChips();
+    composer.appendChild(chips);
+
     var row = el('div', 'pop-row');
     var cat = document.createElement('select');
     CATEGORIES.forEach(function (c) {
@@ -1001,6 +1208,7 @@
       n.category = cat.value;
       n.status = st.value;
       n.author = identity.author || '';
+      n.appliesTo = scope;
       if (doc.notes.indexOf(n) === -1) doc.notes.push(n);
       Store.write(doc);
       editing = null; editingEl = null;
@@ -1016,6 +1224,7 @@
 
   function render() {
     buildBar();
+    buildTray();
     buildPanel();
     renderComposer();
     renderPins();

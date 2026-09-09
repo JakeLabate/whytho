@@ -387,3 +387,17 @@ body.doc main { max-width: 1080px; }
 
 .app-who.on .who { background: var(--ground-alt); border-radius: 999px; padding-left: 6px; padding-right: 12px; }
 .who:hover { background: var(--ground-alt); border-radius: 999px; padding-left: 6px; padding-right: 12px; }
+
+.seg-view { display: inline-flex; border: 0.5px solid var(--line); border-radius: 8px; overflow: hidden; margin-right: auto; }
+.seg-view .seg-b { font: inherit; font-size: 13px; background: var(--paper); color: var(--ink-soft); border: 0; padding: 7px 13px; cursor: pointer; }
+.seg-view .seg-b.on { background: var(--violet); color: #fff; }
+.scope-pill { margin-left: auto; font-size: 11px; background: var(--ground-alt); color: var(--ink-soft); border-radius: 999px; padding: 2px 9px; }
+.scope-pill.narrow { background: #ede9fe; color: #4c1d95; }
+#viewer-notes.by-width { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.width-col { min-width: 0; }
+.width-head { font-size: 13px; color: var(--ink-soft); padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.width-empty { border: 1px dashed var(--line); border-radius: 8px; padding: 16px 10px; margin-top: 10px; text-align: center; font-size: 13px; color: var(--ink-soft); }
+.width-note { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px 11px; margin-top: 10px; }
+.width-sel { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: var(--ink-soft); overflow-wrap: anywhere; }
+.width-body { font-size: 13.5px; margin-top: 5px; }
+.width-by { font-size: 11.5px; color: var(--ink-soft); margin-top: 6px; }

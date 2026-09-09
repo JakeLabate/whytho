@@ -39,8 +39,32 @@
     toast._t = setTimeout(function () { t.hidden = true; }, 3400);
   }
 
+  var WIDTH_COLS = [
+    { id: 'mobile', label: 'Mobile' },
+    { id: 'tablet', label: 'Tablet' },
+    { id: 'laptop', label: 'Laptop' },
+    { id: 'desktop', label: 'Desktop' }
+  ];
+  var noteLayout = 'list';
+
+  function scopeOf(n) {
+    var a = n.appliesTo || n.applies_to;
+    return (Array.isArray(a) && a.length) ? a : ['all'];
+  }
+
+  function scopeLabel(n) {
+    var a = scopeOf(n);
+    if (a.indexOf('all') > -1) return 'All widths';
+    return a.map(function (id) {
+      var hit = id;
+      WIDTH_COLS.forEach(function (w) { if (w.id === id) hit = w.label; });
+      return hit;
+    }).join(', ') + ' only';
+  }
+
   function fromRow(r) {
     return {
+      appliesTo: Array.isArray(r.applies_to) ? r.applies_to : ['all'],
       id: r.client_id, selector: r.selector, fallbackSelector: r.fallback_selector,
       tag: r.tag, textSnippet: r.text_snippet, category: r.category, status: r.status,
       body: r.body, author: r.author, viewport: r.viewport || {}, createdAt: r.created_at
@@ -1041,24 +1065,70 @@
   function showViewer(title, url, notes, onDelete) {
     $('#viewer-title').textContent = title || 'Page';
     $('#viewer-url').innerHTML = url ? '<a href="' + esc(url) + '" rel="noopener">' + esc(url) + '</a>' : '';
+    current = { title: title, url: url, notes: notes, remove: onDelete };
+    paintNotes();
+    go('page');
+  }
+
+  function noteCard(n, i) {
+    var vp = n.viewport && n.viewport.width ? n.viewport.breakpoint + ' ' + n.viewport.width + 'px' : 'viewport not recorded';
+    var d = document.createElement('div');
+    d.className = 'note';
+    d.style.borderLeftColor = CATEGORY_COLORS[n.category] || '#5b21b6';
+    d.innerHTML =
+      '<div class="top"><b>' + (i + 1) + '</b><span>' + esc(CATEGORY_LABELS[n.category] || n.category) + '</span>' +
+      '<span>' + esc(n.status || '') + '</span><span>' + esc(vp) + '</span>' +
+      '<span class="scope-pill' + (scopeOf(n).indexOf('all') > -1 ? '' : ' narrow') + '">' + esc(scopeLabel(n)) + '</span></div>' +
+      '<div class="body">' + highlight(n.body) + '</div><code>' + esc(n.selector) + '</code>' +
+      '<div class="top" style="margin-top:10px"><span><b>' + esc(n.author || 'Unknown') + '</b>' +
+      (n.team ? ' &middot; ' + esc(n.team) : '') + '</span>' +
+      '<span>' + esc(n.createdAt ? new Date(n.createdAt).toLocaleString() : '') + '</span></div>';
+    return d;
+  }
+
+  function paintNotes() {
+    var wrap = $('#viewer-notes');
+    if (!wrap || !current) return;
+    wrap.innerHTML = '';
+    var notes = current.notes;
+
+    if (noteLayout === 'width') {
+      wrap.className = 'by-width';
+      WIDTH_COLS.forEach(function (col) {
+        var inCol = notes.filter(function (n) {
+          var a = scopeOf(n);
+          return a.indexOf('all') > -1 || a.indexOf(col.id) > -1;
+        });
+        var c = document.createElement('div');
+        c.className = 'width-col';
+        c.innerHTML = '<div class="width-head">' + esc(col.label) + ' &middot; ' + inCol.length + '</div>';
+        if (!inCol.length) {
+          c.innerHTML += '<div class="width-empty">Nobody has looked</div>';
+        } else {
+          inCol.forEach(function (n) {
+            var mini = document.createElement('div');
+            mini.className = 'width-note';
+            mini.innerHTML = '<div class="width-sel">' + esc(n.selector.slice(0, 40)) + '</div>' +
+              '<div class="width-body">' + esc(n.body) + '</div>' +
+              '<div class="width-by">' + esc(n.author || 'Unknown') + '</div>';
+            c.appendChild(mini);
+          });
+        }
+        wrap.appendChild(c);
+      });
+      return;
+    }
+
+    wrap.className = '';
+    notes.forEach(function (n, i) { wrap.appendChild(noteCard(n, i)); });
+  }
+
+  function showViewerLegacy(title, url, notes, onDelete) {
     var wrap = $('#viewer-notes');
     wrap.innerHTML = '';
     notes.forEach(function (n, i) {
-      var d = document.createElement('div');
-      d.className = 'note';
-      d.style.borderLeftColor = CATEGORY_COLORS[n.category] || '#5b21b6';
-      var vp = n.viewport && n.viewport.width ? n.viewport.breakpoint + ' ' + n.viewport.width + 'px' : 'viewport not recorded';
-      d.innerHTML =
-        '<div class="top"><b>' + (i + 1) + '</b><span>' + esc(CATEGORY_LABELS[n.category] || n.category) + '</span>' +
-        '<span>' + esc(n.status || '') + '</span><span>' + esc(vp) + '</span></div>' +
-        '<div class="body">' + highlight(n.body) + '</div><code>' + esc(n.selector) + '</code>' +
-        '<div class="top" style="margin-top:10px"><span><b>' + esc(n.author || 'Unknown') + '</b>' +
-        (n.team ? ' &middot; ' + esc(n.team) : '') + '</span>' +
-        '<span>' + esc(n.createdAt ? new Date(n.createdAt).toLocaleString() : '') + '</span></div>';
-      wrap.appendChild(d);
+      wrap.appendChild(noteCard(n, i));
     });
-    current = { title: title, url: url, notes: notes, remove: onDelete };
-    go('page');
   }
 
   function openLocal(id) {
@@ -1188,6 +1258,16 @@
       markRead(ids).then(function () { renderInbox(); toast('Inbox cleared.'); });
     });
     $('#viewer-delete').addEventListener('click', function () { if (current && current.remove) current.remove(); });
+
+    document.querySelectorAll('[data-layout]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        noteLayout = b.getAttribute('data-layout');
+        document.querySelectorAll('[data-layout]').forEach(function (x) {
+          x.classList.toggle('on', x === b);
+        });
+        paintNotes();
+      });
+    });
 
 
     ['dragenter', 'dragover'].forEach(function (ev) {
