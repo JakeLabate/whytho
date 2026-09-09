@@ -32,15 +32,7 @@ body {
 a { color: var(--violet); }
 a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--violet); outline-offset: 3px; }
 
-.masthead {
-  display: flex; align-items: center; gap: 24px;
-  padding: 18px 32px; border-bottom: 1px solid var(--line);
-  position: sticky; top: 0; background: var(--ground); z-index: 20;
-}
-.wordmark { font-family: var(--serif); font-weight: 700; font-size: 22px; letter-spacing: -0.01em; color: var(--ink); text-decoration: none; }
-.masthead nav { margin-left: auto; display: flex; gap: 20px; font-size: 15px; flex-wrap: wrap; justify-content: flex-end; }
-.masthead nav a { color: var(--ink-soft); text-decoration: none; }
-.masthead nav a:hover { color: var(--violet); }
+
 
 main { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
 
@@ -170,9 +162,8 @@ footer p { font-size: 14px; color: var(--ink-soft); max-width: none; margin: 0; 
 @media (max-width: 860px) {
   .hero { grid-template-columns: 1fr; gap: 34px; padding: 44px 0 40px; }
   .two { grid-template-columns: 1fr; }
-  main, .masthead, footer { padding-left: 20px; padding-right: 20px; }
+  main, footer { padding-left: 20px; padding-right: 20px; }
   .band.alt { margin: 0 -20px; padding-left: 20px; padding-right: 20px; }
-  .masthead nav { gap: 14px; font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
@@ -412,3 +403,18 @@ kbd { font-family: ui-monospace, Menlo, monospace; font-size: 12px; background: 
 .ext-install { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
 .ext-more { margin-top: 16px; }
 .ext-more summary { cursor: pointer; font-size: 14px; color: var(--violet); }
+
+/* documentation pages wear the same chrome as the app */
+body.doc { background: var(--ground); }
+.doc-main { max-width: 900px; margin: 0 auto; padding: 0 24px 80px; }
+.doc-main .band { border-top: 1px solid var(--line); padding: 44px 0; }
+.doc-main .band:first-child { border-top: 0; }
+.doc-main .band.alt { background: transparent; margin: 0; padding-left: 0; padding-right: 0; }
+.doc-main h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(30px, 4.5vw, 44px); line-height: 1.1; letter-spacing: -0.02em; margin: 44px 0 14px; }
+.doc-main .hero { display: grid; grid-template-columns: 1.05fr .95fr; gap: 44px; align-items: center; padding: 44px 0; }
+.doc-main .hero h1 { margin-top: 0; }
+.app-who .who b { font-size: 13px; font-weight: 500; }
+@media (max-width: 860px) {
+  .doc-main { padding: 0 16px 70px; }
+  .doc-main .hero { grid-template-columns: 1fr; gap: 28px; }
+}
