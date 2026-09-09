@@ -445,8 +445,8 @@
   function loadInbox() {
     if (!user) { inbox = []; return Promise.resolve(); }
     return sb.rpc('why_notifications_feed', { p_limit: 100 }).then(function (res) {
-      if (res.error) { inbox = []; return; }
-      inbox = res.data || [];
+      // Never let an unexpected shape from the feed take down the whole app boot.
+      inbox = (!res.error && Array.isArray(res.data)) ? res.data : [];
     });
   }
 
