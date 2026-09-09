@@ -20,13 +20,30 @@ deliberate. Why pins the reasoning to the element itself so the next person can 
   Machine generated class names (hashed, emotion, styled components) are filtered out.
 - Every note stores the viewport it was taken at, so a note written at 390px is marked as a mobile
   observation rather than a global one.
-- Notes are saved to `localStorage` on the annotated origin. Send to console moves them to
-  https://why.jakelabate.com for viewing and export.
+- Notes save to Postgres against your account. The annotator runs on other people's origins, so
+  it cannot hold a Supabase session; it carries a per account annotator token instead, embedded in
+  your personal bookmarklet. The `why-sync` edge function resolves that token to a user with the
+  service role key and pins every write to that user.
+- `localStorage` on the annotated origin is the offline cache. If the network drops, notes are kept
+  locally and pushed on the next run.
 - Exports: JSON, Markdown for pull requests and handover docs, and CSV.
+
+## Backend
+
+Supabase project `vvekkbboqqkxnlpmxazh`, shared with the portal and analytics apps.
+
+- `why_pages`, `why_notes`, `why_tokens`, all with row level security scoped to `auth.uid()`.
+- `why_notes` is unique on `(user_id, client_id)`, so pushes are idempotent and a note written
+  offline syncs once, not twice.
+- Deletes are soft (`deleted_at`) so a sync cannot resurrect a removed note.
+- Edge function `why-sync` handles pull, push, delete, and whoami for token holders. It runs with
+  `verify_jwt` off because it does its own token check, and it answers CORS from any origin, which
+  is required for a bookmarklet.
+- The console authenticates normally with email and password and talks to PostgREST directly.
 
 ## Constraints, stated plainly
 
-- No server. Notes live in the browser that made them and travel as JSON.
+- One account, one set of notes. No team sharing yet; handover is by export.
 - Third party sites cannot be framed and annotated remotely, so Why runs inside the page. You
   need to be able to load the page yourself.
 - If a template changes underneath a note, the pin resolves to nothing and is shown as unresolved

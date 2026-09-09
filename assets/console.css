@@ -166,3 +166,13 @@ footer p { font-size: 14px; color: var(--ink-soft); max-width: none; margin: 0; 
   .masthead nav { gap: 14px; font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* account */
+.account-box { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin-top: 20px; max-width: 620px; }
+.acct-row { display: flex; align-items: center; gap: 16px; }
+.acct-row .sub { font-size: 13px; }
+.auth { display: grid; gap: 10px; }
+.auth input { font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--ground); color: var(--ink); }
+.auth-actions { display: flex; gap: 8px; }
+.auth .sub { margin: 2px 0 0; }
+#bookmarklet-state { font-size: 13px; margin: 10px 0; }

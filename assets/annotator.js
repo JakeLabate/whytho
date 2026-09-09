@@ -8,6 +8,7 @@
   if (window.__why__) { window.__why__.toggle(); return; }
 
   var CONSOLE_URL = 'https://why.jakelabate.com/';
+  var SYNC_URL = 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync';
   var STORE_PREFIX = 'why:v1:';
   var CATEGORIES = [
     { id: 'seo', label: 'SEO', color: '#5b21b6' },
@@ -156,6 +157,96 @@
     return null;
   }
 
+  /* ---------- account sync ----------
+     The annotator runs on someone else's origin, so it carries a per account
+     annotator token rather than a Supabase session. The token arrives in the
+     personal bookmarklet and is kept on this origin so later runs stay signed in. */
+
+  var TOKEN = (function () {
+    var fromScript = null;
+    try {
+      var cur = document.currentScript || document.querySelector('script[data-why-token]');
+      if (cur) fromScript = cur.getAttribute('data-why-token');
+    } catch (e) { }
+    if (fromScript) {
+      try { localStorage.setItem('why:token', fromScript); } catch (e) { }
+      return fromScript;
+    }
+    try { return localStorage.getItem('why:token') || ''; } catch (e) { return ''; }
+  })();
+
+  var syncState = TOKEN ? 'syncing' : 'local';
+
+  function api(action, extra) {
+    var body = {
+      token: TOKEN,
+      action: action,
+      origin: location.origin,
+      path: location.pathname,
+      url: location.href,
+      title: document.title
+    };
+    if (extra) for (var k in extra) body[k] = extra[k];
+    return fetch(SYNC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function (r) { return r.json(); });
+  }
+
+  function fromRow(r) {
+    return {
+      id: r.client_id,
+      selector: r.selector,
+      fallbackSelector: r.fallback_selector || '',
+      tag: r.tag || '',
+      textSnippet: r.text_snippet || '',
+      category: r.category,
+      status: r.status,
+      body: r.body,
+      author: r.author || '',
+      viewport: r.viewport || {},
+      createdAt: r.created_at
+    };
+  }
+
+  function setSync(state, msg) {
+    syncState = state;
+    buildBar();
+    if (msg) toast(msg);
+  }
+
+  function pullNotes() {
+    if (!TOKEN) return;
+    api('pull').then(function (res) {
+      if (res.error) { setSync('error', res.error); return; }
+      var cloud = (res.notes || []).map(fromRow);
+      var byId = {};
+      cloud.forEach(function (n) { byId[n.id] = n; });
+      var localOnly = doc.notes.filter(function (n) { return !byId[n.id]; });
+      doc.notes = cloud.concat(localOnly);
+      Store.write(doc);
+      setSync('cloud');
+      render();
+      if (localOnly.length) push(localOnly);
+    }, function () { setSync('offline'); });
+  }
+
+  function push(notes) {
+    if (!TOKEN || !notes.length) return;
+    setSync('syncing');
+    api('push', { notes: notes }).then(function (res) {
+      if (res.error) { setSync('error', res.error); return; }
+      setSync('cloud');
+    }, function () { setSync('offline'); });
+  }
+
+  function removeRemote(note) {
+    if (!TOKEN) return;
+    api('delete', { client_id: note.id }).then(function () { setSync('cloud'); },
+      function () { setSync('offline'); });
+  }
+
   /* ---------- store ---------- */
 
   var Store = {
@@ -211,6 +302,10 @@
   .bar button.on { background: #7c3aed; color: #fff; }
   .bar .mark { font-size: 12px; letter-spacing: .04em; color: #a78bfa; padding: 0 8px 0 4px; }
   .bar .vp { font-size: 11px; color: #8b83b8; padding-right: 4px; }
+  .bar .acct { font-size: 11px; padding: 4px 8px; border-radius: 999px; background: #2e2a48; color: #a5a0c4; white-space: nowrap; }
+  .bar .acct.cloud { background: #1f3a2e; color: #6ee7b7; }
+  .bar .acct.syncing { background: #2e2a48; color: #c4b5fd; }
+  .bar .acct.offline, .bar .acct.error { background: #3b2230; color: #fda4af; }
 
   .panel { position: fixed; top: 0; right: 0; width: 380px; max-width: 100vw; height: 100%; background: #fbfaf8; color: #1c1a2e; pointer-events: auto; display: flex; flex-direction: column; box-shadow: -12px 0 40px rgba(15,23,42,.18); }
   .panel header { padding: 14px 16px; border-bottom: 1px solid #e6e1da; display: flex; align-items: center; gap: 8px; }
@@ -413,13 +508,32 @@
     pick.addEventListener('click', function () { setPicking(!picking); });
     var list = el('button', '', (panelOpen ? 'Hide notes' : 'Show notes') + ' (' + doc.notes.length + ')');
     list.addEventListener('click', function () { panelOpen = !panelOpen; render(); });
-    var send = el('button', '', 'Send to console');
-    send.addEventListener('click', sendToConsole);
+    var send = el('button', '', TOKEN ? 'Open console' : 'Send to console');
+    send.addEventListener('click', function () {
+      if (TOKEN) window.open(CONSOLE_URL, '_blank', 'noopener');
+      else sendToConsole();
+    });
     var off = el('button', '', 'Close');
     off.addEventListener('click', function () { api.off(); });
     var vpn = el('span', 'vp', vp.breakpoint + ' ' + vp.width + 'px');
+
+    var labels = {
+      cloud: 'Saved to your account',
+      syncing: 'Saving',
+      offline: 'Offline, saved here',
+      error: 'Sync problem',
+      local: 'This browser only'
+    };
+    var acct = el('span', 'acct ' + syncState, labels[syncState]);
+    if (!TOKEN) {
+      acct.title = 'Sign in at why.jakelabate.com and use your personal bookmarklet to save notes to your account.';
+      acct.style.cursor = 'pointer';
+      acct.addEventListener('click', function () { window.open(CONSOLE_URL, '_blank', 'noopener'); });
+    }
+
     bar.appendChild(mark); bar.appendChild(pick); bar.appendChild(list);
-    bar.appendChild(send); bar.appendChild(off); bar.appendChild(vpn);
+    bar.appendChild(send); bar.appendChild(off);
+    bar.appendChild(acct); bar.appendChild(vpn);
     layer.appendChild(bar);
   }
 
@@ -565,9 +679,10 @@
       try { localStorage.setItem('why:author', author); } catch (e) { }
       if (doc.notes.indexOf(n) === -1) doc.notes.push(n);
       Store.write(doc);
+      push([n]);
       editing = null;
       render();
-      toast('Note saved.');
+      toast(TOKEN ? 'Note saved to your account.' : 'Note saved in this browser.');
     });
     var cancel = el('button', 'ghost', 'Cancel');
     cancel.addEventListener('click', function () { editing = null; render(); });
@@ -576,7 +691,7 @@
       var del = el('button', 'ghost danger', 'Delete');
       del.addEventListener('click', function () {
         doc.notes = doc.notes.filter(function (x) { return x.id !== n.id; });
-        Store.write(doc); editing = null; render(); toast('Note deleted.');
+        Store.write(doc); removeRemote(n); editing = null; render(); toast('Note deleted.');
       });
       actions.appendChild(del);
     }
@@ -665,5 +780,6 @@
   window.__why__ = api;
 
   render();
+  if (TOKEN) pullNotes();
   if (!doc.notes.length) toast('Why is on. Select an element to leave your first note.');
 })();

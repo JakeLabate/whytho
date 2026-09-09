@@ -23,6 +23,7 @@
 <header class="masthead">
   <a class="wordmark" href="./">Why</a>
   <nav>
+    <a href="#account">Account</a>
     <a href="#setup">Setup</a>
     <a href="#library">Library</a>
     <a href="demo.html">Demo page</a>
@@ -34,9 +35,9 @@
   <section class="hero">
     <div class="hero-copy">
       <h1>Every element on a page is a decision somebody made.</h1>
-      <p class="lede">Why pins the reasoning to the element itself. Turn it on over any page you can load, select something on desktop or on a phone, and write down why it is that way. The note carries the selector, the breakpoint it was taken at, and who made the call.</p>
+      <p class="lede">Why pins the reasoning to the element itself. Turn it on over any page you can load, select something on desktop or on a phone, and write down why it is that way. The note carries the selector, the breakpoint it was taken at, and who made the call. Everything saves to your account, so the record follows you across machines rather than sitting in one browser.</p>
       <div class="hero-actions">
-        <a class="btn" href="#setup">Set up the bookmarklet</a>
+        <a class="btn" href="#account">Create an account</a>
         <a class="btn quiet" href="demo.html">Try it on a demo page</a>
       </div>
     </div>
@@ -60,6 +61,12 @@
     </figure>
   </section>
 
+  <section id="account" class="band">
+    <h2>Account</h2>
+    <p class="sub">Notes are stored per account and are visible only to you. Row level security enforces that in the database, not just in this page.</p>
+    <div id="account-box" class="account-box"></div>
+  </section>
+
   <section id="setup" class="band">
     <h2>Setup</h2>
     <p>Why runs inside the page you are annotating, so it works on staging, on production, and on anything behind a login. Two ways in.</p>
@@ -67,13 +74,14 @@
     <div class="two">
       <div class="card">
         <h3>Bookmarklet</h3>
-        <p>Drag this to your bookmarks bar, then click it on any page. On mobile, copy the code below and save it as a bookmark by hand.</p>
+        <p>Drag this to your bookmarks bar, then click it on any page. It carries your account with it, so notes save straight to the database. On mobile, copy the code and save it as a bookmark by hand.</p>
         <p><a class="bookmarklet" id="bookmarklet" href="#">Annotate with Why</a></p>
+        <p class="sub" id="bookmarklet-state"></p>
         <button class="btn quiet small" id="copy-bookmarklet">Copy bookmarklet code</button>
       </div>
       <div class="card">
         <h3>Script tag</h3>
-        <p>Better for a staging environment your whole team touches. Everyone who loads the page gets the toolbar.</p>
+        <p>Better for a staging environment you keep coming back to. The token in the tag is yours, so treat the snippet like a password.</p>
         <pre><code id="snippet">&lt;script src="https://why.jakelabate.com/assets/annotator.js" defer&gt;&lt;/script&gt;</code></pre>
         <button class="btn quiet small" id="copy-snippet">Copy script tag</button>
       </div>
@@ -83,7 +91,7 @@
       <li>Load the page you want to document and start Why.</li>
       <li>Choose <b>Select an element</b>, then click it. On a phone, press and hold instead.</li>
       <li>Write the reasoning, tag it, save. A numbered pin sticks to the element.</li>
-      <li>Choose <b>Send to console</b> to bring the notes here for export and sharing.</li>
+      <li>The note saves to your account as you write it. Open the console from any browser to read, export, or delete it.</li>
     </ol>
   </section>
 
@@ -93,7 +101,7 @@
     <div id="library-list"></div>
 
     <details class="importer">
-      <summary>Import notes from JSON</summary>
+      <summary>Import notes from a JSON export</summary>
       <p>Paste an export, or drop a <code>.json</code> file anywhere on this page.</p>
       <textarea id="import-text" placeholder='{"schema":"why/1","pages":[ ... ]}' spellcheck="false"></textarea>
       <button class="btn small" id="import-btn">Import notes</button>
@@ -121,7 +129,7 @@
     <h2>What it does not do</h2>
     <ul class="plain">
       <li>It cannot open someone else's site in a frame and annotate it. Most sites refuse to be framed, so Why runs in the page instead. That means you need to be able to load the page yourself.</li>
-      <li>There is no server. Notes sit in the browser that made them, and travel as JSON. Nothing is uploaded anywhere.</li>
+      <li>Notes are yours alone. There is no sharing between accounts yet, so a handover happens through a Markdown, CSV, or JSON export.</li>
       <li>Selectors are recorded as written at the time. If a template changes underneath a note, the pin shows as unresolved rather than silently pointing at the wrong thing.</li>
     </ul>
   </section>
@@ -133,6 +141,8 @@
 </footer>
 
 <div id="toast" class="toast" hidden></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/config.js"></script>
 <script src="assets/console.js"></script>
 </body>
 </html>
