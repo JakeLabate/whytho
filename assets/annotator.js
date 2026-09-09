@@ -187,11 +187,40 @@
       title: document.title
     };
     if (extra) for (var k in extra) body[k] = extra[k];
+
+    // text/plain keeps this a simple request, so there is no CORS preflight to lose.
+    // The function parses the body as JSON regardless of the content type it arrives with.
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 12000);
+
     return fetch(SYNC_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    }).then(function (r) { return r.json(); });
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: JSON.stringify(body),
+      signal: ctrl ? ctrl.signal : undefined
+    }).then(function (r) {
+      clearTimeout(timer);
+      return r.text().then(function (text) {
+        var parsed = null;
+        try { parsed = JSON.parse(text); } catch (e) { }
+        if (!r.ok) return { error: (parsed && parsed.error) || ('Server returned ' + r.status) };
+        if (!parsed) return { error: 'Unreadable response from the sync endpoint.' };
+        return parsed;
+      });
+    }, function (err) {
+      clearTimeout(timer);
+      throw err;
+    });
+  }
+
+  function reason(err) {
+    if (err && err.name === 'AbortError') return 'The sync request timed out after 12 seconds.';
+    return 'Could not reach the sync endpoint from this page.';
+  }
+
+  // Notes the network has not accepted yet, so a retry knows what to send.
+  function unsynced() {
+    return doc.notes.filter(function (n) { return !n._synced; });
   }
 
   function fromRow(r) {
@@ -224,12 +253,13 @@
       var byId = {};
       cloud.forEach(function (n) { byId[n.id] = n; });
       var localOnly = doc.notes.filter(function (n) { return !byId[n.id]; });
+      cloud.forEach(function (n) { n._synced = true; });
       doc.notes = cloud.concat(localOnly);
       Store.write(doc);
       setSync('cloud');
       render();
       if (localOnly.length) push(localOnly);
-    }, function () { setSync('offline'); });
+    }, function (err) { setSync('offline', reason(err)); });
   }
 
   function push(notes) {
@@ -237,8 +267,10 @@
     setSync('syncing');
     api('push', { notes: notes }).then(function (res) {
       if (res.error) { setSync('error', res.error); return; }
+      notes.forEach(function (n) { n._synced = true; });
+      Store.write(doc);
       setSync('cloud');
-    }, function () { setSync('offline'); });
+    }, function (err) { setSync('offline', reason(err)); });
   }
 
   function removeRemote(note) {
@@ -520,11 +552,24 @@
     var labels = {
       cloud: 'Saved to your account',
       syncing: 'Saving',
-      offline: 'Offline, saved here',
+      offline: 'Not saved to your account',
       error: 'Sync problem',
       local: 'This browser only'
     };
-    var acct = el('span', 'acct ' + syncState, labels[syncState]);
+    var pending = TOKEN ? unsynced().length : 0;
+    var acct = el('span', 'acct ' + syncState,
+      (syncState === 'offline' || syncState === 'error')
+        ? labels[syncState] + (pending ? ', ' + pending + ' to retry' : '') + '. Retry'
+        : labels[syncState]);
+
+    if (TOKEN && (syncState === 'offline' || syncState === 'error')) {
+      acct.style.cursor = 'pointer';
+      acct.title = 'Send the notes this page has not saved yet.';
+      acct.addEventListener('click', function () {
+        var todo = unsynced();
+        if (todo.length) push(todo); else pullNotes();
+      });
+    }
     if (!TOKEN) {
       acct.title = 'Sign in at whytho.jakelabate.com and use your personal bookmarklet to save notes to your account.';
       acct.style.cursor = 'pointer';
