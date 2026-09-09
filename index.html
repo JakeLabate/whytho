@@ -107,13 +107,20 @@
         </div>
       </div>
 
-      <div class="panel-card">
-        <h2>Your bookmarklet</h2>
+      <div class="panel-card" id="ext-card">
+        <h2>Browser extension</h2>
+        <p>The cleanest way in. One click on the toolbar icon, or <kbd>Alt</kbd> <kbd>Shift</kbd> <kbd>W</kbd>, on any page. Your account connects itself, so there is no token to copy.</p>
+        <div id="ext-state"></div>
+      </div>
+
+      <details class="panel-card advanced">
+        <summary><b>Bookmarklet</b><span class="sub">Works in any browser, including Safari and mobile.</span></summary>
+        <h2 style="margin-top:12px">Your bookmarklet</h2>
         <p>This is how you start WhyTho on a page. Install it once per browser, then open it on any page you want to annotate.</p>
         <p id="drag-line"><a class="bookmarklet" id="bookmarklet" href="#">Annotate with WhyTho</a> <span class="drag-hint">&#8592; drag me up to your bookmarks bar</span></p>
         <p class="sub" id="bookmarklet-state"></p>
         <div id="install-guide"></div>
-      </div>
+      </details>
 
       <details class="panel-card advanced">
         <summary><b>Always on for a staging site</b><span class="sub">Optional. Only for a site you control.</span></summary>

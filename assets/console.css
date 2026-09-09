@@ -401,3 +401,10 @@ body.doc main { max-width: 1080px; }
 .width-sel { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: var(--ink-soft); overflow-wrap: anywhere; }
 .width-body { font-size: 13.5px; margin-top: 5px; }
 .width-by { font-size: 11.5px; color: var(--ink-soft); margin-top: 6px; }
+
+.ext-row { display: flex; align-items: center; gap: 9px; font-size: 14px; color: var(--ink-soft); margin: 12px 0; }
+.ext-dot { width: 9px; height: 9px; border-radius: 50%; background: #94a3b8; flex: none; }
+.ext-dot.on { background: #16a34a; }
+.ext-steps { margin-top: 14px; }
+.ext-steps li { font-size: 14.5px; }
+kbd { font-family: ui-monospace, Menlo, monospace; font-size: 12px; background: var(--ground-alt); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; }

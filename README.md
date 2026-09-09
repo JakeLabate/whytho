@@ -10,6 +10,18 @@ Sites accumulate decisions. An H1 phrased a certain way, a nav item kept above t
 canonical pointing somewhere non obvious. Six months later nobody remembers which of those were
 deliberate. WhyTho pins the reasoning to the element itself so the next person can read it.
 
+## Getting it onto a page
+
+- `extension/` is a manifest v3 Chrome extension: click the toolbar icon or press Alt+Shift+W.
+  It packages its own copy of the annotator because manifest v3 forbids remote code, and
+  `tools/build-extension.sh` is what keeps that copy identical to `assets/annotator.js` and
+  rebuilds `whytho-extension.zip`. Run it after any annotator change.
+- The extension gets its token from the app: a content script on whytho.jakelabate.com sets
+  `data-whytho-extension` on the document so the app knows it is there, and the app posts the
+  token back over `window.postMessage` when you press Connect. Nothing else crosses.
+- The bookmarklet and the script tag both still work and are unchanged. Safari and Firefox
+  need their own extension builds, so they stay on the bookmarklet for now.
+
 ## How it works
 
 - `assets/annotator.js` is the engine. It loads into the page being annotated, via bookmarklet or

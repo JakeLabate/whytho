@@ -1,0 +1,64 @@
+{
+  "manifest_version": 3,
+  "name": "WhyTho",
+  "version": "3.1.0",
+  "description": "Annotate any webpage with the reasoning behind it. Select an element, record why it is that way, and keep it on your account.",
+  "homepage_url": "https://whytho.jakelabate.com/",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://whytho.jakelabate.com/*"
+  ],
+  "action": {
+    "default_title": "WhyTho",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://whytho.jakelabate.com/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "annotator.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "commands": {
+    "toggle-whytho": {
+      "suggested_key": {
+        "default": "Alt+Shift+W",
+        "mac": "Alt+Shift+W"
+      },
+      "description": "Start or stop WhyTho on this page"
+    }
+  }
+}

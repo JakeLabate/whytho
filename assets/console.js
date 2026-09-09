@@ -340,6 +340,65 @@
 
   var installTarget = null;
 
+  /* ---------- extension ---------- */
+
+  var extVersion = null;
+  var extConnected = false;
+
+  function detectExtension() {
+    extVersion = document.documentElement.getAttribute('data-whytho-extension');
+  }
+
+  function renderExtension() {
+    var box = $('#ext-state');
+    if (!box) return;
+    detectExtension();
+
+    if (!extVersion) {
+      box.innerHTML =
+        '<div class="ext-row"><span class="ext-dot"></span><span>Not installed in this browser</span></div>' +
+        '<p><a class="btn small" href="whytho-extension.zip" download>Download the extension</a></p>' +
+        '<ol class="steps ext-steps">' +
+        '<li>Unzip it somewhere you will not delete by accident.</li>' +
+        '<li>Open <code>chrome://extensions</code> and turn on <b>Developer mode</b>, top right.</li>' +
+        '<li>Choose <b>Load unpacked</b> and pick the unzipped folder.</li>' +
+        '<li>Come back here and press <b>Connect this account</b>. It will appear once the extension is installed.</li>' +
+        '</ol>' +
+        '<p class="sub">Chrome, Edge, Brave and Arc all take this package. Firefox and Safari need their own builds, so use the bookmarklet there for now.</p>';
+      return;
+    }
+
+    box.innerHTML =
+      '<div class="ext-row"><span class="ext-dot on"></span><span>Installed, version ' + esc(extVersion) +
+      (extConnected ? '. Connected to your account.' : '. Not connected to your account yet.') + '</span></div>' +
+      '<button class="btn small" id="ext-connect">' + (extConnected ? 'Reconnect this account' : 'Connect this account') + '</button>' +
+      '<p class="sub">Connecting hands the extension the same annotator token the bookmarklet uses. Nothing else is shared with it.</p>';
+
+    $('#ext-connect').addEventListener('click', function () {
+      if (!token) { toast('Still setting up your account, try again in a moment.'); return; }
+      window.postMessage({
+        type: 'whytho:connect',
+        token: token,
+        account: (profile && profile.display_name) || (user && user.email) || ''
+      }, window.location.origin);
+    });
+  }
+
+  window.addEventListener('message', function (e) {
+    // The bridge posts from this same page, so anything with another source is not ours.
+    if (!e.data || typeof e.data !== 'object') return;
+    if (e.source && e.source !== window) return;
+    if (e.data.type === 'whytho:connected') {
+      extConnected = true;
+      renderExtension();
+      toast('Extension connected. Notes from it save to your account.');
+    }
+    if (e.data.type === 'whytho:state') {
+      extConnected = !!e.data.connected;
+      renderExtension();
+    }
+  });
+
   function renderInstallGuide() {
     var wrap = $('#install-guide');
     if (!wrap) return;
@@ -369,6 +428,7 @@
       b.addEventListener('click', function () {
         installTarget = b.getAttribute('data-install');
         renderInstallGuide();
+    renderExtension();
     enhanceCode(document.querySelector('[data-view="setup"]'));
       });
     });
@@ -385,6 +445,7 @@
     $('#snippet').textContent = '<script src="' + CFG.consoleUrl.replace(/\/$/, '') + '/assets/annotator.js"' +
       (token ? ' data-why-token="' + token + '"' : '') + ' defer><\/script>';
     renderInstallGuide();
+    renderExtension();
     enhanceCode(document.querySelector('[data-view="setup"]'));
   }
 

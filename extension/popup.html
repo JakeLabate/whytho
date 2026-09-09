@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  body { width: 264px; margin: 0; padding: 14px; font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1c1a2e; background: #faf7f2; }
+  .mark { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+  .sub { font-size: 12px; color: #59536e; margin: 0 0 12px; line-height: 1.45; }
+  button { width: 100%; font: inherit; font-size: 13px; border-radius: 8px; padding: 9px 12px; cursor: pointer; border: 1px solid #ddd7ce; background: #fff; color: #1c1a2e; }
+  button.primary { background: #5b21b6; border-color: #5b21b6; color: #fff; font-weight: 500; }
+  button + button { margin-top: 7px; }
+  .row { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #59536e; margin: 0 0 12px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; flex: none; }
+  .dot.on { background: #16a34a; }
+  .hint { font-size: 11.5px; color: #59536e; margin: 10px 0 0; line-height: 1.5; }
+  a { color: #5b21b6; }
+  kbd { font-family: ui-monospace, Menlo, monospace; font-size: 11px; background: #f2ede4; border-radius: 4px; padding: 1px 5px; }
+</style>
+</head>
+<body>
+  <p class="mark">WhyTho</p>
+  <p class="sub">Select an element on this page and record why it is that way.</p>
+  <div class="row"><span class="dot" id="dot"></span><span id="state">Checking</span></div>
+  <button class="primary" id="start">Start on this page</button>
+  <button id="connect">Connect my account</button>
+  <p class="hint">Shortcut: <kbd>Alt</kbd> <kbd>Shift</kbd> <kbd>W</kbd>. Notes save to <a href="https://whytho.jakelabate.com/" target="_blank">whytho.jakelabate.com</a>.</p>
+  <script src="popup.js"></script>
+</body>
+</html>
