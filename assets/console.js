@@ -768,7 +768,8 @@
       toast('Drag this to your bookmarks bar, or copy the code.');
     });
     $('#copy-bookmarklet').addEventListener('click', function () { copy(bookmarkletCode(), 'Bookmarklet'); });
-    $('#copy-snippet').addEventListener('click', function () { copy($('#snippet').textContent, 'Script tag'); });
+    var snippetBtn = $('#copy-snippet');
+    if (snippetBtn) snippetBtn.addEventListener('click', function () { copy($('#snippet').textContent, 'Script tag'); });
 
     $('#import-btn').addEventListener('click', function () {
       var raw = $('#import-text').value.trim();

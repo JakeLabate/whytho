@@ -108,18 +108,20 @@
 
       <div class="panel-card">
         <h2>Your bookmarklet</h2>
-        <p>Drag this to your bookmarks bar, then click it on any page. On mobile, copy the code and save it as a bookmark by hand.</p>
-        <p><a class="bookmarklet" id="bookmarklet" href="#">Annotate with WhyTho</a></p>
+        <p>This is how you start WhyTho on a page. Drag the black pill onto your bookmarks bar once, then click that bookmark on any page you want to annotate.</p>
+        <p><a class="bookmarklet" id="bookmarklet" href="#">Annotate with WhyTho</a> <span class="drag-hint">&#8592; drag me up to your bookmarks bar</span></p>
         <p class="sub" id="bookmarklet-state"></p>
-        <button class="btn quiet small" id="copy-bookmarklet">Copy bookmarklet code</button>
+        <p class="sub">On a phone you cannot drag, so copy the code and paste it into a new bookmark by hand.</p>
+        <button class="btn quiet small" id="copy-bookmarklet">Copy the code instead</button>
       </div>
 
-      <div class="panel-card">
-        <h2>Script tag</h2>
-        <p>Better for a staging environment you keep returning to. The token in the tag is yours, so treat the snippet like a password.</p>
+      <details class="panel-card advanced">
+        <summary><b>Always on for a staging site</b><span class="sub">Optional. Only for a site you control.</span></summary>
+        <p>The bookmarklet is per person: you click it when you need it. This script tag does the opposite, it loads WhyTho for anyone who opens the page, with no clicking. Useful on a staging environment your team lives in.</p>
+        <p class="warn-inline"><b>The token below is your account credential.</b> Anyone who can view the source of that page can take it and write notes as you. Put it on private staging only, never on a production site.</p>
         <pre><code id="snippet"></code></pre>
         <button class="btn quiet small" id="copy-snippet">Copy script tag</button>
-      </div>
+      </details>
 
       <div class="panel-card">
         <h2>Then</h2>
