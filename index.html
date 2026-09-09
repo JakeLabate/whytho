@@ -69,9 +69,16 @@
         </div>
       </div>
       <div class="exports">
-        <button class="btn small" data-export="json">Copy JSON</button>
-        <button class="btn small" data-export="md">Copy Markdown</button>
-        <button class="btn small" data-export="csv">Download CSV</button>
+        <button class="btn quiet small" data-export="md">Copy for a PR or doc</button>
+        <details class="export-more">
+          <summary>Other formats</summary>
+          <div class="export-list">
+            <button class="btn quiet small" data-export="csv">Download CSV</button>
+            <span class="sub">A sortable list for a client or a spreadsheet.</span>
+            <button class="btn quiet small" data-export="json">Copy JSON</button>
+            <span class="sub">Backup, or moving these notes to another account.</span>
+          </div>
+        </details>
         <button class="btn quiet small danger" id="viewer-delete">Delete this page</button>
       </div>
       <div id="viewer-notes"></div>

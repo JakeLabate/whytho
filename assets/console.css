@@ -329,3 +329,12 @@ body.doc main { max-width: 1080px; }
   .acc-right { gap: 6px; }
   .acc-counts { font-size: 11.5px; }
 }
+
+.exports { align-items: center; }
+.export-more summary { cursor: pointer; font-size: 13px; color: var(--ink-soft); }
+.export-more summary:hover { color: var(--violet); }
+.export-list { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; align-items: center;
+  margin-top: 10px; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; }
+.export-list .sub { font-size: 13px; }
+.exports .danger { margin-left: auto; }
+@media (max-width: 700px) { .export-list { grid-template-columns: 1fr; gap: 6px; } .exports .danger { margin-left: 0; } }
