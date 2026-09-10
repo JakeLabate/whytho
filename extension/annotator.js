@@ -9,7 +9,7 @@
 
   var CONSOLE_URL = 'https://whytho.jakelabate.com/';
   var SYNC_URL = 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync';
-  var VERSION = '4.0';
+  var VERSION = '4.1';
 
   var SVG = {
     cursor: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 1.5l9.5 5.6-4.1 1-2.2 4z"/></svg>',
@@ -645,7 +645,9 @@
   .pop-save { border: 0; background: #5b21b6; color: #fff; font: inherit; font-size: 13px; font-weight: 600; height: 30px; padding: 0 14px; border-radius: 7px; cursor: pointer; min-width: 86px; }
   .pop-save:hover { background: #4c1d95; }
   .pop-read { font-size: 14px; line-height: 1.55; white-space: pre-wrap; }
-  .pop-shot { display: block; width: 100%; border: 1px solid #e6e1da; border-radius: 8px; margin-bottom: 9px; }
+  .pop-shot { display: block; margin-bottom: 9px; }
+  .pop-shot img { display: block; width: 100%; border: 1px solid #e6e1da; border-radius: 8px; }
+  .card-shot { display: block; width: 100%; border: 1px solid #e6e1da; border-radius: 6px; margin: 6px 0; }
   .pop-ctx { font-size: 11.5px; color: #6b6480; margin-top: 7px; }
   .pop-by { font-size: 11.5px; color: #6b6480; margin-top: 9px; }
   .pop .mentions { position: static; margin-top: 6px; box-shadow: none; }
@@ -1070,6 +1072,7 @@
         '<div class="top"><span class="num">' + idx + '</span><span>' + esc(catOf(n.category).label) + '</span>' +
         '<span>' + esc(n.status) + '</span><span style="margin-left:auto">' + esc(vpTxt) + '</span></div>' +
         '<div class="body">' + withMentions(n.body) + '</div>' +
+        (n.shotUrl ? '<img class="card-shot" src="' + esc(n.shotUrl) + '" alt="">' : '') +
         '<code>' + esc(n.selector) + '</code>' +
         '<div class="scope-badge' + (inScope(n, viewportSnapshot().breakpoint) ? '' : ' out') + '">' + esc(scopeLabel(n)) + '</div>' +
         '<div class="top" style="margin-top:8px">' +
@@ -1168,14 +1171,18 @@
     head.appendChild(x);
     composer.appendChild(head);
 
+    if (n.shotUrl) {
+      var shot = document.createElement('a');
+      shot.className = 'pop-shot';
+      shot.href = n.shotUrl;
+      shot.target = '_blank';
+      shot.rel = 'noopener';
+      shot.title = 'The element when this note was written. Opens full size.';
+      shot.innerHTML = '<img src="' + esc(n.shotUrl) + '" alt="The element when the note was written">';
+      composer.appendChild(shot);
+    }
+
     if (readOnly) {
-      if (n.shotUrl) {
-        var img = document.createElement('img');
-        img.className = 'pop-shot';
-        img.src = n.shotUrl;
-        img.alt = 'The element when the note was written';
-        composer.appendChild(img);
-      }
       composer.appendChild(el('div', 'pop-read', esc(n.body)));
       if (n.context && n.context.heading) {
         composer.appendChild(el('div', 'pop-ctx', 'Under: ' + esc(n.context.heading)));
