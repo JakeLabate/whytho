@@ -46,16 +46,35 @@
     location.href = u.toString();
   }
 
-  function signIn(next) {
-    $('#stage').innerHTML =
-      '<h1>Sign in to continue</h1>' +
-      '<p class="sub">An application is asking to reach your WhyTho notes. Sign in and you will be asked to approve it.</p>' +
-      '<div class="grant"><button class="btn oauth" id="gh">Continue with GitHub</button></div>' +
-      '<p class="sub">Or open <a href="./">WhyTho</a>, sign in there, and come back to this page.</p>';
-    $('#gh').addEventListener('click', function () {
-      sb.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: location.href } })
-        .then(function (r) { if (r.error) toast(r.error.message); });
-    });
+  function signIn() {
+    fetch(CFG.supabaseUrl.replace(/\/$/, '') + '/auth/v1/settings', { headers: { apikey: CFG.publishableKey } })
+      .then(function (r) { return r.json(); })
+      .then(function (s) {
+        var ext = (s && s.external) || {};
+        var ids = Object.keys(CFG.providers).filter(function (id) { return ext[id] === true; });
+        if (!ids.length) ids = ['github'];
+        paint(ids);
+      }, function () { paint(['github']); });
+
+    function paint(ids) {
+      $('#stage').innerHTML =
+        '<h1>Sign in to continue</h1>' +
+        '<p class="sub">An application is asking to reach your WhyTho notes. Sign in and you will be asked to approve it.</p>' +
+        '<div class="grant">' + ids.map(function (id) {
+          return '<button class="btn oauth" data-provider="' + id + '">Continue with ' +
+            esc(CFG.providers[id] || id) + '</button>';
+        }).join('') + '</div>' +
+        '<p class="sub">Or open <a href="./">WhyTho</a>, sign in there, and come back to this page.</p>';
+
+      document.querySelectorAll('[data-provider]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          sb.auth.signInWithOAuth({
+            provider: b.getAttribute('data-provider'),
+            options: { redirectTo: location.href }
+          }).then(function (r) { if (r.error) toast(r.error.message); });
+        });
+      });
+    }
   }
 
   function consent(user, profile) {

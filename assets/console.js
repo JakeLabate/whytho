@@ -5,7 +5,41 @@
   'use strict';
 
   var CFG = window.WHY_CONFIG;
-  var BUILD = '3.1';
+  var BUILD = '3.2';
+  var authProviders = null;   // filled from the project's own settings endpoint
+
+  function loadProviders() {
+    if (authProviders) return Promise.resolve(authProviders);
+    return fetch(CFG.supabaseUrl.replace(/\/$/, '') + '/auth/v1/settings', {
+      headers: { apikey: CFG.publishableKey }
+    }).then(function (r) { return r.json(); }).then(function (s) {
+      var ext = (s && s.external) || {};
+      authProviders = Object.keys(CFG.providers).filter(function (id) { return ext[id] === true; });
+      if (!authProviders.length) authProviders = ['github'];
+      return authProviders;
+    }, function () {
+      authProviders = ['github'];
+      return authProviders;
+    });
+  }
+
+  function providerButtons(prefix) {
+    return (authProviders || ['github']).map(function (id) {
+      return '<button class="btn oauth" type="button" data-provider="' + id + '" id="' + prefix + '-' + id + '">' +
+        'Continue with ' + esc(CFG.providers[id] || id) + '</button>';
+    }).join('');
+  }
+
+  function wireProviders(root, redirectTo) {
+    root.querySelectorAll('[data-provider]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        sb.auth.signInWithOAuth({
+          provider: b.getAttribute('data-provider'),
+          options: { redirectTo: redirectTo }
+        }).then(function (res) { if (res.error) toast(res.error.message); });
+      });
+    });
+  }
   var LOCAL_KEY = 'why:console:v1';
   var CATEGORY_LABELS = { seo: 'SEO', content: 'Content', tech: 'Technical', a11y: 'Accessibility', perf: 'Performance', ux: 'UX' };
   var CATEGORY_COLORS = { seo: '#5b21b6', content: '#0f766e', tech: '#b45309', a11y: '#be123c', perf: '#1d4ed8', ux: '#7c2d12' };
@@ -207,7 +241,7 @@
       });
     } else {
       box.innerHTML =
-        '<button class="btn oauth" type="button" id="github">Continue with GitHub</button>' +
+        providerButtons('sso') +
         '<div class="or"><span>or use an email address</span></div>' +
         '<form class="auth" id="auth-form">' +
         '<input type="email" id="email" placeholder="you@company.com" autocomplete="email" required>' +
@@ -219,10 +253,7 @@
         '</div><p class="sub" id="auth-msg">Without an account, notes stay in this browser. If you have signed in to another of these apps with GitHub, use that button and skip the password.</p>' +
         '<p class="sub note-small">If GitHub sends you to a different app, this domain is not in the Supabase redirect allowlist yet.</p></form>';
 
-      $('#github').addEventListener('click', function () {
-        sb.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: CFG.consoleUrl } })
-          .then(function (res) { if (res.error) toast(res.error.message); });
-      });
+      wireProviders(box, CFG.consoleUrl);
       $('#auth-form').addEventListener('submit', function (e) { e.preventDefault(); doAuth('in'); });
       $('#signup').addEventListener('click', function () { doAuth('up'); });
       $('#magic').addEventListener('click', function () { doAuth('magic'); });
@@ -255,7 +286,7 @@
         // A wrong password and an account with no password look the same from here,
         // so say what to try rather than repeating the server wording.
         msg.textContent = res.error.message.indexOf('Invalid login credentials') > -1
-          ? 'That email and password did not match. If you created this account with GitHub, there is no password on it. Use Continue with GitHub, or email yourself a link.'
+          ? 'That email and password did not match. If you created this account with a sign in button above, there is no password on it. Use that button, or email yourself a link.'
           : res.error.message;
         return;
       }
@@ -1342,8 +1373,10 @@
           });
       } else {
         token = null; profile = null; orgs = []; myRole = null;
-        applyAuthState();
-        renderWho(); renderAccount(); renderLibrary();
+        loadProviders().then(function () {
+          applyAuthState();
+          renderWho(); renderAccount(); renderLibrary();
+        });
       }
     });
   }
