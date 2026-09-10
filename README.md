@@ -48,6 +48,23 @@ the `why_pages`, `why_notes` and `why_tokens` tables, and the `why-sync` edge fu
 left alone deliberately. Changing them would invalidate installed bookmarklets and orphan notes
 cached on annotated origins, and none of them are visible to anyone using the tool.
 
+## What a note carries
+
+Besides the reasoning itself, every note stores the context it was written in: the element's
+text, the text immediately before and after it, the nearest heading above it, the ancestor
+chain, any href or alt or aria-label, the bounding rect and a few computed styles. That is
+read from the DOM, needs no permissions, and is what makes a note legible later without
+opening the page.
+
+Extension users also get a real screenshot. `chrome.tabs.captureVisibleTab` grabs the visible
+tab, an OffscreenCanvas in the worker crops to the element with a margin and strokes the
+highlight box, and the result is sent with the note as a JPEG. DOM rasterisation libraries
+were deliberately not used: they re-render rather than capture, so cross origin images and
+unsupported CSS come out wrong, and a screenshot that lies is worse than none.
+
+Screenshots live in a private `why-shots` bucket. Nothing is public; readers get signed urls
+that expire in an hour, minted by the edge functions which already know who is asking.
+
 ## Backend
 
 Supabase project `vvekkbboqqkxnlpmxazh`, shared with the portal and analytics apps.

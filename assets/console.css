@@ -425,3 +425,9 @@ body.doc { background: var(--ground); }
 
 #signin-box .btn.oauth + .btn.oauth, .grant .btn.oauth + .btn.oauth { margin-top: 8px; }
 .grant .btn.oauth { width: 100%; }
+
+.note-shot { margin: 10px 0; }
+.note-shot img { display: block; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; }
+.note-ctx { display: grid; gap: 4px; margin: 10px 0; padding: 10px 12px; background: var(--ground); border-radius: 8px; font-size: 13px; color: var(--ink-soft); }
+.note-ctx b { color: var(--ink); font-weight: 500; margin-right: 5px; }
+.note-ctx span { overflow-wrap: anywhere; }

@@ -9,7 +9,7 @@
 
   var CONSOLE_URL = 'https://whytho.jakelabate.com/';
   var SYNC_URL = 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync';
-  var VERSION = '3.1';
+  var VERSION = '4.0';
 
   var SVG = {
     cursor: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 1.5l9.5 5.6-4.1 1-2.2 4z"/></svg>',
@@ -210,6 +210,95 @@
     return t.slice(0, 120);
   }
 
+  // Everything about the element's surroundings that can be read from the DOM.
+  // This works everywhere, needs no permissions, and stays useful after the page moves on.
+  function captureContext(el) {
+    var txt = function (n) {
+      if (!n) return '';
+      var t = (n.innerText || n.textContent || '').replace(/\s+/g, ' ').trim();
+      return t.slice(0, 220);
+    };
+
+    var heading = null;
+    var walk = el;
+    outer:
+    while (walk && walk !== document.body) {
+      var prev = walk.previousElementSibling;
+      while (prev) {
+        if (/^H[1-6]$/.test(prev.tagName)) { heading = txt(prev); break outer; }
+        var inner = prev.querySelector && prev.querySelector('h1,h2,h3,h4,h5,h6');
+        if (inner) { heading = txt(inner); break outer; }
+        prev = prev.previousElementSibling;
+      }
+      walk = walk.parentElement;
+    }
+
+    var ancestors = [];
+    var up = el.parentElement;
+    while (up && up !== document.documentElement && ancestors.length < 4) {
+      ancestors.push(describe(up));
+      up = up.parentElement;
+    }
+
+    var cs = null;
+    try { cs = window.getComputedStyle(el); } catch (e) { }
+    var r = el.getBoundingClientRect();
+
+    var link = el.tagName === 'A' ? el.getAttribute('href')
+      : (el.querySelector && el.querySelector('a') ? el.querySelector('a').getAttribute('href') : null);
+
+    return {
+      text: txt(el),
+      before: txt(el.previousElementSibling),
+      after: txt(el.nextElementSibling),
+      parent_text: txt(el.parentElement),
+      heading: heading,
+      ancestors: ancestors,
+      href: link || null,
+      alt: el.getAttribute ? (el.getAttribute('alt') || null) : null,
+      aria_label: el.getAttribute ? (el.getAttribute('aria-label') || null) : null,
+      rect: { x: Math.round(r.left), y: Math.round(r.top + window.scrollY), w: Math.round(r.width), h: Math.round(r.height) },
+      styles: cs ? {
+        font_size: cs.fontSize, font_weight: cs.fontWeight, color: cs.color,
+        display: cs.display, position: cs.position
+      } : null,
+      page_title: document.title.slice(0, 200),
+      captured_at: new Date().toISOString()
+    };
+  }
+
+  /* A real screenshot is only possible through the extension, which can capture the
+     visible tab. The relay it injects answers this message; without it we simply
+     carry on with the text context. */
+  function requestShot(el) {
+    if (!FROM_EXTENSION || !el) return Promise.resolve(null);
+    var r = el.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) return Promise.resolve(null);
+    if (r.bottom < 0 || r.top > window.innerHeight) return Promise.resolve(null);
+
+    return new Promise(function (resolve) {
+      var done = false;
+      function onMsg(e) {
+        if (!e.data || e.data.type !== 'whytho:shot:result') return;
+        if (e.source && e.source !== window) return;
+        window.removeEventListener('message', onMsg);
+        done = true;
+        resolve(e.data.error ? null : e.data.dataUrl || null);
+      }
+      window.addEventListener('message', onMsg);
+      window.postMessage({
+        type: 'whytho:shot',
+        rect: { x: r.left, y: r.top, w: r.width, h: r.height },
+        dpr: window.devicePixelRatio || 1
+      }, '*');
+      setTimeout(function () {
+        if (done) return;
+        window.removeEventListener('message', onMsg);
+        resolve(null);
+      }, 4000);
+    });
+  }
+
   function describe(el) {
     var tag = el.tagName.toLowerCase();
     var cls = stableClasses(el);
@@ -278,7 +367,8 @@
         return {
           id: n.id, selector: n.selector, fallbackSelector: n.fallbackSelector, tag: n.tag,
           textSnippet: n.textSnippet, category: n.category, status: n.status, body: n.body,
-          appliesTo: scopeOf(n), viewport: n.viewport, createdAt: n.createdAt
+          appliesTo: scopeOf(n), viewport: n.viewport, createdAt: n.createdAt,
+          context: n.context || {}, shot: n._shot || null
         };
       });
       for (var k in extra) body[k] = extra[k];
@@ -347,6 +437,8 @@
   function fromRow(r) {
     return {
       appliesTo: Array.isArray(r.applies_to) ? r.applies_to : ['all'],
+      context: r.context || {},
+      shotUrl: r.shot_url || null,
       author: r.author || '',
       team: r.team_name || null,
       mine: r.mine !== false,
@@ -456,6 +548,7 @@
       return doc;
     },
     write: function (doc) {
+      doc.notes.forEach(function (n) { delete n._shot; });
       doc.updatedAt = new Date().toISOString();
       doc.title = document.title;
       doc.url = location.href;
@@ -552,6 +645,8 @@
   .pop-save { border: 0; background: #5b21b6; color: #fff; font: inherit; font-size: 13px; font-weight: 600; height: 30px; padding: 0 14px; border-radius: 7px; cursor: pointer; min-width: 86px; }
   .pop-save:hover { background: #4c1d95; }
   .pop-read { font-size: 14px; line-height: 1.55; white-space: pre-wrap; }
+  .pop-shot { display: block; width: 100%; border: 1px solid #e6e1da; border-radius: 8px; margin-bottom: 9px; }
+  .pop-ctx { font-size: 11.5px; color: #6b6480; margin-top: 7px; }
   .pop-by { font-size: 11.5px; color: #6b6480; margin-top: 9px; }
   .pop .mentions { position: static; margin-top: 6px; box-shadow: none; }
   .pop-label { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: #6b6480; margin: 11px 0 6px; }
@@ -1012,6 +1107,7 @@
       fallbackSelector: '',
       tag: target.tagName.toLowerCase(),
       textSnippet: snippet(target),
+      context: captureContext(target),
       category: 'seo',
       status: 'decided',
       appliesTo: ['all'],
@@ -1073,7 +1169,17 @@
     composer.appendChild(head);
 
     if (readOnly) {
+      if (n.shotUrl) {
+        var img = document.createElement('img');
+        img.className = 'pop-shot';
+        img.src = n.shotUrl;
+        img.alt = 'The element when the note was written';
+        composer.appendChild(img);
+      }
       composer.appendChild(el('div', 'pop-read', esc(n.body)));
+      if (n.context && n.context.heading) {
+        composer.appendChild(el('div', 'pop-ctx', 'Under: ' + esc(n.context.heading)));
+      }
       composer.appendChild(el('div', 'pop-by',
         '<b>' + esc(n.author || 'Unknown') + '</b>' + (n.team ? ' \u00b7 ' + esc(n.team) : '') +
         ' \u00b7 ' + esc(catOf(n.category).label) + ' \u00b7 ' + esc(n.status) +
@@ -1213,12 +1319,21 @@
       n.status = st.value;
       n.author = identity.author || '';
       n.appliesTo = scope;
+      var shotOf = editingEl;
       if (doc.notes.indexOf(n) === -1) doc.notes.push(n);
       Store.write(doc);
       editing = null; editingEl = null;
       render();
       toast(TOKEN ? 'Note saved. Sending it to your account.' : 'Note saved in this browser.');
-      push([n]);
+
+      // The picture is taken with the element still highlighted, then sent with the note.
+      if (shotOf) paintHighlight(shotOf);
+      requestShot(shotOf).then(function (dataUrl) {
+        if (!picking) paintHighlight(null);
+        if (dataUrl) n._shot = dataUrl;
+        push([n]);
+        delete n._shot;
+      });
     }
 
     layer.appendChild(composer);

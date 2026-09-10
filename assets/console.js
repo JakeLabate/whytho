@@ -5,7 +5,7 @@
   'use strict';
 
   var CFG = window.WHY_CONFIG;
-  var BUILD = '3.2';
+  var BUILD = '4.0';
   var authProviders = null;   // filled from the project's own settings endpoint
 
   function loadProviders() {
@@ -100,6 +100,8 @@
   function fromRow(r) {
     return {
       appliesTo: Array.isArray(r.applies_to) ? r.applies_to : ['all'],
+      context: r.context || {},
+      shotPath: r.shot_path || null,
       id: r.client_id, selector: r.selector, fallbackSelector: r.fallback_selector,
       tag: r.tag, textSnippet: r.text_snippet, category: r.category, status: r.status,
       body: r.body, author: r.author, viewport: r.viewport || {}, createdAt: r.created_at
@@ -1226,7 +1228,17 @@
       '<div class="top"><b>' + (i + 1) + '</b><span>' + esc(CATEGORY_LABELS[n.category] || n.category) + '</span>' +
       '<span>' + esc(n.status || '') + '</span><span>' + esc(vp) + '</span>' +
       '<span class="scope-pill' + (scopeOf(n).indexOf('all') > -1 ? '' : ' narrow') + '">' + esc(scopeLabel(n)) + '</span></div>' +
-      '<div class="body">' + highlight(n.body) + '</div><code>' + esc(n.selector) + '</code>' +
+      '<div class="body">' + highlight(n.body) + '</div>' +
+      (n.shotPath ? '<div class="note-shot" data-shot="' + esc(n.shotPath) + '"></div>' : '') +
+      (n.context && (n.context.heading || n.context.text)
+        ? '<div class="note-ctx">' +
+          (n.context.heading ? '<span><b>Under</b> ' + esc(n.context.heading) + '</span>' : '') +
+          (n.context.text ? '<span><b>Element said</b> ' + esc(n.context.text) + '</span>' : '') +
+          (n.context.before ? '<span><b>Before it</b> ' + esc(n.context.before) + '</span>' : '') +
+          (n.context.after ? '<span><b>After it</b> ' + esc(n.context.after) + '</span>' : '') +
+          '</div>'
+        : '') +
+      '<code>' + esc(n.selector) + '</code>' +
       '<div class="top" style="margin-top:10px"><span><b>' + esc(n.author || 'Unknown') + '</b>' +
       (n.team ? ' &middot; ' + esc(n.team) : '') + '</span>' +
       '<span>' + esc(n.createdAt ? new Date(n.createdAt).toLocaleString() : '') + '</span></div>';
@@ -1268,6 +1280,29 @@
 
     wrap.className = '';
     notes.forEach(function (n, i) { wrap.appendChild(noteCard(n, i)); });
+    loadShots(wrap);
+  }
+
+  // Screenshots sit in a private bucket, so the urls are minted per view and expire.
+  function loadShots(root) {
+    var slots = [].slice.call(root.querySelectorAll('[data-shot]'));
+    if (!slots.length || !token) return;
+    var paths = slots.map(function (s) { return s.getAttribute('data-shot'); });
+    fetch(CFG.supabaseUrl.replace(/\/$/, '') + '/functions/v1/why-sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: JSON.stringify({ token: token, action: 'shot_urls', paths: paths })
+    }).then(function (r) { return r.json(); }).then(function (res) {
+      var urls = (res && res.urls) || {};
+      slots.forEach(function (slot) {
+        var u = urls[slot.getAttribute('data-shot')];
+        if (!u) { slot.remove(); return; }
+        var a = document.createElement('a');
+        a.href = u; a.target = '_blank'; a.rel = 'noopener';
+        a.innerHTML = '<img src="' + esc(u) + '" alt="The element when the note was written">';
+        slot.appendChild(a);
+      });
+    }, function () { slots.forEach(function (s) { s.remove(); }); });
   }
 
   function showViewerLegacy(title, url, notes, onDelete) {
