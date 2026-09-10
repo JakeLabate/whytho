@@ -5,7 +5,7 @@
   'use strict';
 
   var CFG = window.WHY_CONFIG;
-  var BUILD = '4.1';
+  var BUILD = '4.2';
   var authProviders = null;   // filled from the project's own settings endpoint
 
   function loadProviders() {

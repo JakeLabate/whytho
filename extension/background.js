@@ -56,15 +56,34 @@ async function capture(rect, dpr, windowId) {
   var shot = await chrome.tabs.captureVisibleTab(windowId, { format: 'png' });
   var bitmap = await createImageBitmap(await (await fetch(shot)).blob());
 
-  var pad = 28;
-  var sx = Math.max(0, (rect.x - pad) * dpr);
-  var sy = Math.max(0, (rect.y - pad) * dpr);
-  var sw = Math.min(bitmap.width - sx, (rect.w + pad * 2) * dpr);
-  var sh = Math.min(bitmap.height - sy, (rect.h + pad * 2) * dpr);
+  // Show the neighbourhood, not just the element. Padding scales with the element and
+  // is floored, so a small link still comes back with enough page around it to place it.
+  var vw = bitmap.width / dpr;
+  var vh = bitmap.height / dpr;
+
+  var padX = Math.min(420, Math.max(180, rect.w * 0.6));
+  var padY = Math.min(340, Math.max(140, rect.h * 1.1));
+
+  var x = rect.x - padX;
+  var y = rect.y - padY;
+  var w = rect.w + padX * 2;
+  var h = rect.h + padY * 2;
+
+  // A floor on the crop itself, so tiny elements do not produce a tiny picture.
+  var minW = 760, minH = 460;
+  if (w < minW) { x -= (minW - w) / 2; w = minW; }
+  if (h < minH) { y -= (minH - h) / 2; h = minH; }
+
+  // Never ask for more than the viewport holds, and keep the crop inside it.
+  w = Math.min(w, vw);
+  h = Math.min(h, vh);
+  x = Math.max(0, Math.min(x, vw - w));
+  y = Math.max(0, Math.min(y, vh - h));
+
+  var sx = x * dpr, sy = y * dpr, sw = w * dpr, sh = h * dpr;
   if (sw < 4 || sh < 4) throw new Error('The element is not visible on screen.');
 
-  // Keep it readable but small: notes are text, the picture is a reminder.
-  var maxW = 900;
+  var maxW = 1200;
   var scale = Math.min(1, maxW / sw);
   var out = new OffscreenCanvas(Math.round(sw * scale), Math.round(sh * scale));
   var ctx = out.getContext('2d');
