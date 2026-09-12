@@ -5,7 +5,7 @@
   'use strict';
 
   var CFG = window.WHY_CONFIG;
-  var BUILD = '6.1';
+  var BUILD = '6.2';
   var authProviders = null;   // filled from the project's own settings endpoint
 
   function loadProviders() {
@@ -987,6 +987,8 @@
   /* ---------- the account's own GitHub credential ---------- */
 
   var gitCred = null;
+  var aiCred = null;
+  var changesToday = 0;
 
   function credUrl() { return CFG.supabaseUrl.replace(/\/$/, '') + '/functions/v1/why-credentials'; }
 
@@ -1002,9 +1004,76 @@
   }
 
   function loadCredential() {
-    if (!user) { gitCred = null; return Promise.resolve(); }
-    return credCall({ action: 'status' })
-      .then(function (r) { gitCred = r && r.connected ? r.credential : null; }, function () { gitCred = null; });
+    if (!user) { gitCred = null; aiCred = null; return Promise.resolve(); }
+    return credCall({ action: 'status' }).then(function (r) {
+      gitCred = (r && r.github) || null;
+      aiCred = (r && r.anthropic) || null;
+      changesToday = (r && r.changes_today) || 0;
+    }, function () { gitCred = null; aiCred = null; });
+  }
+
+  function renderAiCredential() {
+    var box = $('#ai-state');
+    if (!box) return;
+
+    if (aiCred) {
+      box.innerHTML =
+        '<div class="ext-row"><span class="ext-dot on"></span><span>Anthropic key ending ' +
+        esc(aiCred.key_hint || '????') +
+        (aiCred.last_used_at ? '. Last used ' + esc(new Date(aiCred.last_used_at).toLocaleDateString()) : '. Not used yet') + '.</span></div>' +
+        (aiCred.last_error ? '<p class="warn-inline">' + esc(aiCred.last_error) + '</p>' : '') +
+        '<button class="btn quiet small danger" id="ai-disconnect">Remove key</button>';
+      $('#ai-disconnect').addEventListener('click', function () {
+        credCall({ action: 'disconnect_anthropic' }).then(function () {
+          toast('Anthropic key removed. Change requests will stop being drafted.');
+          loadCredential().then(paintConnections);
+        });
+      });
+      return;
+    }
+
+    box.innerHTML =
+      '<div class="ext-row"><span class="ext-dot"></span><span>No Anthropic key</span></div>' +
+      '<div class="ws-row"><input id="ai-key" type="password" placeholder="sk-ant-..." autocomplete="off">' +
+      '<button class="btn small" id="ai-connect">Add key</button></div>' +
+      '<p class="sub">From console.anthropic.com. Drafting a change costs a cent or two, billed to this key, so nobody spends anybody else\'s money.</p>';
+
+    $('#ai-connect').addEventListener('click', function () {
+      var value = $('#ai-key').value.trim();
+      if (!value) { toast('Paste a key first.'); return; }
+      $('#ai-connect').disabled = true;
+      $('#ai-connect').textContent = 'Checking';
+      credCall({ action: 'connect_anthropic', anthropic_key: value }).then(function (r) {
+        $('#ai-connect').disabled = false;
+        $('#ai-connect').textContent = 'Add key';
+        if (r.error) { toast(r.error); return; }
+        $('#ai-key').value = '';
+        toast('Anthropic key saved.');
+        loadCredential().then(paintConnections);
+      }, function () {
+        $('#ai-connect').disabled = false;
+        $('#ai-connect').textContent = 'Add key';
+        toast('Could not reach the service.');
+      });
+    });
+  }
+
+  function paintConnections() {
+    renderCredential();
+    renderAiCredential();
+    renderRepos();
+    var line = $('#apply-ready');
+    if (!line) return;
+    if (gitCred && aiCred) {
+      line.innerHTML = '<b>Ready.</b> Change requests will be drafted and committed. ' +
+        esc(String(changesToday)) + ' of 50 used in the last day.';
+    } else {
+      var missing = [];
+      if (!gitCred) missing.push('a GitHub token');
+      if (!aiCred) missing.push('an Anthropic key');
+      line.innerHTML = '<b>Not ready.</b> Change requests need ' + missing.join(' and ') +
+        '. Until then they are recorded as notes and marked not applied.';
+    }
   }
 
   function renderCredential() {
@@ -1022,7 +1091,7 @@
       $('#git-disconnect').addEventListener('click', function () {
         credCall({ action: 'disconnect' }).then(function () {
           toast('GitHub disconnected. Change requests will stop being applied.');
-          loadCredential().then(function () { renderCredential(); renderRepos(); });
+          loadCredential().then(paintConnections);
         });
       });
       return;
@@ -1044,8 +1113,8 @@
         $('#git-connect').textContent = 'Connect';
         if (r.error) { toast(r.error); return; }
         $('#git-token').value = '';
-        toast('Connected as ' + (r.account_login || 'your GitHub account') + '.');
-        loadCredential().then(function () { renderCredential(); renderRepos(); });
+        toast('Connected as ' + ((r.github && r.github.account_login) || 'your GitHub account') + '.');
+        loadCredential().then(paintConnections);
       }, function () {
         $('#git-connect').disabled = false;
         $('#git-connect').textContent = 'Connect';
@@ -1665,7 +1734,7 @@
           .then(function () {
             applyAuthState();
             renderWho(); renderAccount(); renderWorkspace(); renderSetup();
-            renderLibrary(); renderInbox(); renderApi(); renderChanges(); renderCredential(); renderRepos(); renderModel(); renderBuild();
+            renderLibrary(); renderInbox(); renderApi(); renderChanges(); paintConnections(); renderModel(); renderBuild();
           });
       } else {
         token = null; profile = null; orgs = []; myRole = null;
