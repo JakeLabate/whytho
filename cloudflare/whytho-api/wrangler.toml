@@ -2,6 +2,13 @@ name = "whytho-api"
 main = "src/index.js"
 compatibility_date = "2026-09-12"
 
+# Declaring the hostname here means one deploy creates the worker, the DNS record
+# and the certificate. One level deep on purpose: free Universal SSL does not cover
+# two level subdomains like api.whytho.jakelabate.com.
+[[routes]]
+pattern = "whytho-api.jakelabate.com"
+custom_domain = true
+
 # Two buckets so a busy dashboard cannot starve the connector, and so an
 # unauthenticated caller gets a much smaller allowance than a real key.
 [[ratelimits]]

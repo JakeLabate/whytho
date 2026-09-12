@@ -10,14 +10,12 @@ rate limiting the functions cannot do for themselves.
 ## Deploy
 
     cd cloudflare/whytho-api
-    npx wrangler deploy
+    npx wrangler@latest login
+    npx wrangler@latest deploy
 
-Then attach the hostname, which creates the DNS record and the certificate:
-
-    npx wrangler deployments domains add whytho-api.jakelabate.com
-
-Or in the dashboard: Workers & Pages, whytho-api, Settings, Domains & Routes, Add
-custom domain.
+The hostname is declared in wrangler.toml as a custom domain, so that one deploy also
+creates the DNS record and the certificate. Wrangler 4.36 or later is needed for the
+rate limit bindings, which is why the commands pin @latest.
 
 ## Why this hostname
 
