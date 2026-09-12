@@ -10,9 +10,20 @@
 
   function loadProviders() {
     if (authProviders) return Promise.resolve(authProviders);
-    return fetch(CFG.supabaseUrl.replace(/\/$/, '') + '/auth/v1/settings', {
-      headers: { apikey: CFG.publishableKey }
-    }).then(function (r) { return r.json(); }).then(function (s) {
+
+    // Never let this block the sign in screen from rendering. A missing or blocked
+    // fetch falls back to the provider we know is configured.
+    var call;
+    try {
+      call = fetch(CFG.supabaseUrl.replace(/\/$/, '') + '/auth/v1/settings', {
+        headers: { apikey: CFG.publishableKey }
+      });
+    } catch (e) {
+      authProviders = ['github'];
+      return Promise.resolve(authProviders);
+    }
+
+    return call.then(function (r) { return r.json(); }).then(function (s) {
       var ext = (s && s.external) || {};
       authProviders = Object.keys(CFG.providers).filter(function (id) { return ext[id] === true; });
       if (!authProviders.length) authProviders = ['github'];
