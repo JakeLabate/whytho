@@ -466,3 +466,6 @@ body.doc { background: var(--ground); }
 .change.committed { border-left-color: #16a34a; }
 .change.committed .change-state { color: #15803d; }
 .change.reverted { border-left-color: #94a3b8; }
+
+.change-model { display: inline-block; margin-left: 8px; font-size: 11px; color: var(--ink-soft); background: var(--ground-alt); border-radius: 999px; padding: 2px 8px; }
+#apply-model { flex: 1; }

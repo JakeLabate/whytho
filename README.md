@@ -106,6 +106,11 @@ Three things keep that safe without a review gate:
 - Every commit records the repository and the blob sha it replaced, so undo is one call.
   That is what the Undo button in the Changes tab uses.
 
+The model is per account, chosen in Workspace and validated against an allowlist in the
+function, so a stored value can never become an arbitrary string in an API call. Which model
+made a change is recorded on the change and in the commit message, so a bad edit can be
+traced to the model that wrote it.
+
 `ANTHROPIC_API_KEY` and `GITHUB_TOKEN` are function secrets. Without them a request fails
 loudly rather than doing nothing.
 

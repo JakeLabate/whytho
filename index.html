@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/console.css?v=52">
+<link rel="stylesheet" href="assets/console.css?v=53">
 </head>
 <body>
 
@@ -110,6 +110,20 @@
         </div>
       </div>
       <div id="workspace-box" class="panel-card"></div>
+
+      <div class="panel-card">
+        <h2>Model</h2>
+        <p class="sub">Which model drafts your change requests. All of them read the whole file and return the same surgical edits; they differ in how much judgement they bring to a vague request, how fast they are, and what they cost you per change.</p>
+        <div class="ws-row">
+          <select id="apply-model">
+            <option value="claude-sonnet-5">Sonnet 5, balanced and the sensible default</option>
+            <option value="claude-opus-5">Opus 5, best judgement on vague or wide requests</option>
+            <option value="claude-haiku-4-5-20251001">Haiku 4.5, fastest and cheapest for simple edits</option>
+            <option value="claude-fable-5-1">Fable 5.1, frontier capability</option>
+          </select>
+        </div>
+        <p class="sub" id="model-note"></p>
+      </div>
 
       <div class="panel-card">
         <h2>Repositories</h2>
@@ -482,7 +496,7 @@ curl -s -X POST "<span class="api-host"></span>/invites" \
 
 <div id="toast" class="toast" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/config.js?v=52"></script>
-<script src="assets/console.js?v=52"></script>
+<script src="assets/config.js?v=53"></script>
+<script src="assets/console.js?v=53"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@
   'use strict';
 
   var CFG = window.WHY_CONFIG;
-  var BUILD = '5.2';
+  var BUILD = '5.3';
   var authProviders = null;   // filled from the project's own settings endpoint
 
   function loadProviders() {
@@ -920,6 +920,7 @@
         '<span class="sub">' + esc(new Date(c.created_at).toLocaleString()) + '</span></div>' +
         (c.summary ? '<div class="change-body">' + esc(c.summary) + '</div>' : '') +
         (c.file_path ? '<code>' + esc(c.file_path) + '</code>' : '') +
+        (c.model ? '<span class="change-model">' + esc(String(c.model).replace('claude-', '').replace(/-\d{8}$/, '')) + '</span>' : '') +
         (c.error ? '<div class="change-error">' + esc(c.error) + '</div>' : '') +
         '<div class="change-actions">' +
         (c.commit_url ? '<a class="btn quiet small" href="' + esc(c.commit_url) + '" target="_blank" rel="noopener">See the commit</a>' : '') +
@@ -955,6 +956,31 @@
           setTimeout(function () { loadChanges().then(renderChanges); }, 4000);
         }, function () { toast('Could not reach the drafting service.'); });
       });
+    });
+  }
+
+  var MODEL_NOTE = {
+    'claude-sonnet-5': 'A good default. Handles most requests, including finding the right neighbouring element, without costing much.',
+    'claude-opus-5': 'Worth it when requests are vague, or when a change reaches a whole section and the edit has to be written against markup every page shares.',
+    'claude-haiku-4-5-20251001': 'Best for literal edits: change this word, swap this link. It is likelier to give up on a request that needs interpretation.',
+    'claude-fable-5-1': 'The most capable option. Some requests may be answered by Opus instead, which is a safeguard on Anthropic\'s side rather than anything here.'
+  };
+
+  function renderModel() {
+    var sel = $('#apply-model');
+    if (!sel || !profile) return;
+    sel.value = profile.apply_model || 'claude-sonnet-5';
+    $('#model-note').textContent = MODEL_NOTE[sel.value] || '';
+    if (sel.dataset.wired) return;
+    sel.dataset.wired = '1';
+    sel.addEventListener('change', function () {
+      $('#model-note').textContent = MODEL_NOTE[sel.value] || '';
+      sb.from('why_profiles').update({ apply_model: sel.value }).eq('user_id', user.id)
+        .then(function (r) {
+          if (r.error) { toast(r.error.message); return; }
+          profile.apply_model = sel.value;
+          toast('Change requests will use ' + sel.options[sel.selectedIndex].text.split(',')[0] + '.');
+        });
     });
   }
 
@@ -1556,7 +1582,7 @@
           .then(function () {
             applyAuthState();
             renderWho(); renderAccount(); renderWorkspace(); renderSetup();
-            renderLibrary(); renderInbox(); renderApi(); renderChanges(); renderRepos(); renderBuild();
+            renderLibrary(); renderInbox(); renderApi(); renderChanges(); renderRepos(); renderModel(); renderBuild();
           });
       } else {
         token = null; profile = null; orgs = []; myRole = null;
