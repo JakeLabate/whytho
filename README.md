@@ -92,6 +92,12 @@ asks the model for surgical find and replace edits, applies them by exact match,
 straight to the live branch. Per repository, `apply_mode` can be `pr` instead, which opens a
 pull request for review.
 
+Reach is part of the request: one page, everything under a path prefix, or the whole site.
+For anything wider than a page the edit is worked out once against the page the note was
+written on, then applied to every file in reach where `old_str` matches exactly once. A
+shared header matches everywhere and changes everywhere; a one off paragraph matches nowhere
+else and is left alone. The summary reports how many of the files in reach were touched.
+
 Three things keep that safe without a review gate:
 
 - The model returns edits, never a rewritten file, so a request about one heading cannot

@@ -9,7 +9,7 @@
 
   var CONSOLE_URL = 'https://whytho.jakelabate.com/';
   var SYNC_URL = 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync';
-  var VERSION = '5.1';
+  var VERSION = '5.2';
 
   var SVG = {
     cursor: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 1.5l9.5 5.6-4.1 1-2.2 4z"/></svg>',
@@ -367,7 +367,9 @@
         return {
           id: n.id, selector: n.selector, fallbackSelector: n.fallbackSelector, tag: n.tag,
           textSnippet: n.textSnippet, category: n.category, status: n.status, body: n.body,
-          appliesTo: scopeOf(n), intent: n.intent || 'note', viewport: n.viewport, createdAt: n.createdAt,
+          appliesTo: scopeOf(n), intent: n.intent || 'note',
+          changeScope: n.changeScope || 'page', scopePrefix: n.scopePrefix || null,
+          viewport: n.viewport, createdAt: n.createdAt,
           context: n.context || {}, shot: n._shot || null
         };
       });
@@ -438,6 +440,8 @@
     return {
       appliesTo: Array.isArray(r.applies_to) ? r.applies_to : ['all'],
       intent: r.intent || 'note',
+      changeScope: r.change_scope || 'page',
+      scopePrefix: r.scope_prefix || null,
       context: r.context || {},
       shotUrl: r.shot_url || null,
       author: r.author || '',
@@ -664,6 +668,7 @@
   .pop-mode { display: flex; gap: 5px; margin-bottom: 9px; }
   .mode-b { flex: 1; font: inherit; font-size: 12px; border: 1px solid #ddd7ce; background: #fff; color: #4a4560; border-radius: 8px; padding: 7px 8px; cursor: pointer; }
   .mode-b.on { background: #1c1a2e; border-color: #1c1a2e; color: #fff; }
+  .pop-reach { margin-top: 9px; }
   .pop-hint { font-size: 11.5px; line-height: 1.45; color: #6b6480; background: #f6f3ee; border-radius: 7px; padding: 8px 9px; margin-top: 8px; }
   .card .ask { font-size: 9.5px; letter-spacing: .03em; text-transform: uppercase; background: #1c1a2e; color: #fff; border-radius: 999px; padding: 2px 7px; }
   .pop-label { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: #6b6480; margin: 11px 0 6px; }
@@ -1132,6 +1137,7 @@
       status: 'decided',
       appliesTo: ['all'],
       intent: 'note',
+      changeScope: 'page',
       body: '',
       author: identity.author || '',
       mine: true,
@@ -1232,6 +1238,7 @@
           ? 'Treated as approved. Claude edits the file in the repository mapped to this site and commits it, so it goes live. Undo is one click in Changes.'
           : '';
         hint.style.display = intent === 'change' ? 'block' : 'none';
+        reachWrap.style.display = intent === 'change' ? 'block' : 'none';
         saveBtn.textContent = intent === 'change' ? 'Request change' : (doc.notes.indexOf(n) > -1 ? 'Save' : 'Add note');
       });
       modes.appendChild(b);
@@ -1330,6 +1337,31 @@
     paintChips();
     composer.appendChild(chips);
 
+    // A request needs a reach. Most are about this page; a header or a footer never is.
+    var segs = location.pathname.split('/').filter(Boolean);
+    var sectionPrefix = segs.length > 1 ? '/' + segs[0] + '/' : null;
+    var reach = n.changeScope || 'page';
+
+    var reachWrap = el('div', 'pop-reach');
+    reachWrap.style.display = intent === 'change' ? 'block' : 'none';
+    reachWrap.appendChild(el('div', 'pop-label', 'Change reaches'));
+    var reachChips = el('div', 'pop-chips');
+
+    function paintReach() {
+      reachChips.innerHTML = '';
+      var opts = [['page', 'This page']];
+      if (sectionPrefix) opts.push(['section', 'Everything under ' + sectionPrefix]);
+      opts.push(['site', 'The whole site']);
+      opts.forEach(function (o) {
+        var b = el('button', 'chip-w' + (reach === o[0] ? ' on' : ''), esc(o[1]));
+        b.addEventListener('click', function () { reach = o[0]; paintReach(); });
+        reachChips.appendChild(b);
+      });
+    }
+    paintReach();
+    reachWrap.appendChild(reachChips);
+    composer.appendChild(reachWrap);
+
     var hint = el('div', 'pop-hint');
     hint.style.display = intent === 'change' ? 'block' : 'none';
     hint.textContent = intent === 'change'
@@ -1381,13 +1413,15 @@
       n.author = identity.author || '';
       n.appliesTo = scope;
       n.intent = intent;
+      n.changeScope = reach;
+      n.scopePrefix = reach === 'section' ? sectionPrefix : null;
       var shotOf = editingEl;
       if (doc.notes.indexOf(n) === -1) doc.notes.push(n);
       Store.write(doc);
       editing = null; editingEl = null;
       render();
       toast(intent === 'change'
-        ? 'Change requested. Claude is making it now.'
+        ? 'Change requested' + (reach === 'site' ? ' across the whole site' : reach === 'section' ? ' across ' + sectionPrefix : '') + '. Claude is making it now.'
         : (TOKEN ? 'Note saved. Sending it to your account.' : 'Note saved in this browser.'));
 
       // The picture is taken with the element still highlighted, then sent with the note.
