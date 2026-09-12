@@ -70,7 +70,9 @@ that expire in an hour, minted by the edge functions which already know who is a
 `cloudflare/whytho-api` is a Worker that fronts both edge functions at
 `whytho-api.jakelabate.com`, strips the `/functions/v1/why-api` prefix, and applies the rate
 limits the functions have no way to apply themselves. Deploy it with `npx wrangler deploy`
-from that folder. Until it is deployed, the canonical base url is still the Supabase one.
+from that folder. It is live, and `https://whytho-api.jakelabate.com` is now the canonical base
+url for both the API and the MCP connector. The Supabase function urls still answer directly,
+but nothing should point at them.
 
 ## API docs
 

@@ -5,7 +5,7 @@
   'use strict';
 
   var CFG = window.WHY_CONFIG;
-  var BUILD = '4.2';
+  var BUILD = '4.3';
   var authProviders = null;   // filled from the project's own settings endpoint
 
   function loadProviders() {
@@ -867,7 +867,7 @@
   var apiKeys = [];
 
   function apiBase() {
-    return CFG.supabaseUrl.replace(/\/$/, '') + '/functions/v1/why-api';
+    return CFG.apiBase || (CFG.supabaseUrl.replace(/\/$/, '') + '/functions/v1/why-api');
   }
 
   function hashKey(text) {
@@ -889,7 +889,7 @@
     if (!base) return;
     base.textContent = apiBase();
     var mcp = $('#mcp-url');
-    if (mcp) mcp.textContent = CFG.supabaseUrl.replace(/\/$/, '') + '/functions/v1/why-mcp/mcp';
+    if (mcp) mcp.textContent = CFG.mcpUrl || (CFG.supabaseUrl.replace(/\/$/, '') + '/functions/v1/why-mcp/mcp');
     renderConnections();
     document.querySelectorAll('.api-host').forEach(function (n) { n.textContent = apiBase(); });
     enhanceCode(document.querySelector('[data-view="api"]'));
