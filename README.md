@@ -84,6 +84,25 @@ from it, and both go stale if it is edited without regenerating:
 - The Postman collection, which is linked to the spec in Postman's Spec Hub and re-synced
   there rather than edited by hand.
 
+## Change requests
+
+A note can be written as reasoning or as a request. A request is treated as approved the
+moment it is written: `why-apply` resolves the page url to a file in the mapped repository,
+asks the model for surgical find and replace edits, applies them by exact match, and commits
+straight to the live branch. Per repository, `apply_mode` can be `pr` instead, which opens a
+pull request for review.
+
+Three things keep that safe without a review gate:
+
+- The model returns edits, never a rewritten file, so a request about one heading cannot
+  quietly reformat three hundred lines.
+- Every `old_str` must match exactly once. Zero matches or several, and nothing is written.
+- Every commit records the repository and the blob sha it replaced, so undo is one call.
+  That is what the Undo button in the Changes tab uses.
+
+`ANTHROPIC_API_KEY` and `GITHUB_TOKEN` are function secrets. Without them a request fails
+loudly rather than doing nothing.
+
 ## Backend
 
 Supabase project `vvekkbboqqkxnlpmxazh`, shared with the portal and analytics apps.
