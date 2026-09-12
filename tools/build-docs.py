@@ -152,8 +152,8 @@ page = '''<!DOCTYPE html>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/console.css?v=41">
-<link rel="stylesheet" href="assets/docs.css?v=41">
+<link rel="stylesheet" href="assets/console.css?v=46">
+<link rel="stylesheet" href="assets/docs.css?v=46">
 </head>
 <body class="doc">
 
@@ -173,22 +173,34 @@ __BAR__
 </div>
 
 <footer><p>WhyTho, built by Jake Labate, SEO Consultant. <a href="https://www.jakelabate.com/">jakelabate.com</a></p></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/config.js?v=46"></script>
+<script src="assets/nav.js?v=46"></script>
 </body>
 </html>
 '''
 
-# The public pages share one bar. It is defined here rather than scraped from a
-# sibling page, so the docs cannot drift out of step the way they did once already.
+# One bar across the whole product. The identity slot is filled by nav.js here and
+# by the app itself inside the app, but the markup is the same in both places.
 bar = '''<header class="app-bar">
-  <a class="app-mark" href="./">WhyTho</a>
-  <nav class="tabs">
-    <a href="about.html">How it works</a>
-    <a href="install.html">Install</a>
-    <a href="docs.html" class="on">API docs</a>
-    <a href="demo.html">Demo</a>
-  </nav>
-  <div class="app-who"><a class="who" href="./"><span class="who-text"><b>Open the app</b></span></a></div>
-</header>'''
+    <a class="app-mark" href="./">WhyTho</a>
+    <nav class="tabs">
+      <a href="./#/notes">Notes</a>
+      <a href="./#/inbox">Inbox</a>
+      <a href="./#/workspace">Workspace</a>
+      <a href="./#/setup">Setup</a>
+      <a href="./#/api">API</a>
+      <a href="docs.html" class="on">Docs</a>
+    </nav>
+    <div class="app-who" id="app-who"></div>
+  </header>
+
+<nav class="doc-subnav">
+  <a href="about.html">How it works</a>
+  <a href="install.html">Install</a>
+  <a href="docs.html" class="on">API reference</a>
+  <a href="demo.html">Demo page</a>
+</nav>'''
 
 page = (page.replace('__BAR__', bar)
             .replace('__NAV__', ''.join(nav))

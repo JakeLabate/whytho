@@ -21,15 +21,24 @@
 <body class="doc">
 
 <header class="app-bar">
-  <a class="app-mark" href="./">WhyTho</a>
-  <nav class="tabs">
+    <a class="app-mark" href="./">WhyTho</a>
+    <nav class="tabs">
+      <a href="./#/notes">Notes</a>
+      <a href="./#/inbox">Inbox</a>
+      <a href="./#/workspace">Workspace</a>
+      <a href="./#/setup">Setup</a>
+      <a href="./#/api">API</a>
+      <a href="docs.html" class="on">Docs</a>
+    </nav>
+    <div class="app-who" id="app-who"></div>
+  </header>
+
+<nav class="doc-subnav">
   <a href="about.html" class="on">How it works</a>
-      <a href="install.html">Install</a>
-      <a href="docs.html">API docs</a>
-      <a href="demo.html">Demo</a>
-  </nav>
-  <div class="app-who"><a class="who" href="./"><span class="who-text"><b>Open the app</b></span></a></div>
-</header>
+  <a href="install.html">Install</a>
+  <a href="docs.html">API reference</a>
+  <a href="demo.html">Demo page</a>
+</nav>
 
 <main class="doc-main">
 
@@ -102,5 +111,8 @@
   <p>WhyTho, built by Jake Labate, SEO Consultant. <a href="https://www.jakelabate.com/">jakelabate.com</a></p>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/config.js?v=46"></script>
+<script src="assets/nav.js?v=46"></script>
 </body>
 </html>

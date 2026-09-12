@@ -432,9 +432,18 @@ body.doc { background: var(--ground); }
 .note-ctx b { color: var(--ink); font-weight: 500; margin-right: 5px; }
 .note-ctx span { overflow-wrap: anywhere; }
 
-/* A quiet link in the app bar for the public reference, so leaving the app for the
-   docs is possible without giving documentation a tab beside the working views. */
-.bar-link { font-size: 14px; color: var(--ink-soft); text-decoration: none; padding: 6px 10px; border-radius: 7px; white-space: nowrap; }
-.bar-link:hover { background: var(--ground-alt); color: var(--ink); }
 .app-bar .tabs a.on { color: var(--ink); border-bottom-color: var(--violet); font-weight: 500; }
-@media (max-width: 700px) { .bar-link { order: 2; font-size: 13px; padding: 4px 8px; } }
+
+/* Second row on the documentation pages. The top bar answers where you are in the
+   product, this answers where you are within the writing, so neither has to do both. */
+.doc-subnav {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  padding: 10px 24px; border-bottom: 1px solid var(--line); background: var(--ground-alt);
+}
+.doc-subnav a {
+  font-size: 13.5px; color: var(--ink-soft); text-decoration: none;
+  padding: 5px 11px; border-radius: 999px; white-space: nowrap;
+}
+.doc-subnav a:hover { background: var(--paper); color: var(--ink); }
+.doc-subnav a.on { background: var(--ink); color: #fff; }
+@media (max-width: 700px) { .doc-subnav { padding: 8px 14px; } }
