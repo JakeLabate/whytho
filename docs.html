@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WhyTho API reference</title>
+<meta name="description" content="The WhyTho API: read and write notes, pages, teams, membership, invites and notifications. Bearer key authentication, per workspace scoping.">
+<link rel="canonical" href="https://whytho.jakelabate.com/docs.html">
+<meta property="og:title" content="WhyTho API reference">
+<meta property="og:description" content="Read and write the reasoning behind the elements on a page.">
+<meta property="og:url" content="https://whytho.jakelabate.com/docs.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/console.css?v=41">
+<link rel="stylesheet" href="assets/docs.css?v=41">
+</head>
+<body class="doc">
+
+<header class="app-bar">
+  <a class="app-mark" href="./">WhyTho</a>
+  <nav class="tabs">
+    <a href="./#/notes">Notes</a>
+    <a href="./#/inbox">Inbox</a>
+    <a href="./#/workspace">Workspace</a>
+    <a href="./#/setup">Setup</a>
+    <a href="./#/api">API</a>
+    <a href="about.html">How it works</a>
+    <a href="docs.html" class="on">API docs</a>
+      <a href="docs.html">API docs</a>
+    <a href="install.html">Install</a>
+  </nav>
+  <div class="app-who"><a class="who" href="./"><span class="who-text"><b>Open the app</b></span></a></div>
+</header>
+
+<div class="d-shell">
+  <aside class="d-nav"><nav><ul><li class="nav-group">Key<ul><li><a href="#get-me"><span class="m m-get">GET</span>What this key can see</a></li></ul></li><li class="nav-group">Notes<ul><li><a href="#get-notes"><span class="m m-get">GET</span>Search notes</a></li><li><a href="#post-notes"><span class="m m-post">POST</span>Create a note</a></li><li><a href="#get-notes-id"><span class="m m-get">GET</span>Read one note</a></li><li><a href="#patch-notes-id"><span class="m m-patch">PATCH</span>Update your own note</a></li><li><a href="#delete-notes-id"><span class="m m-delete">DELETE</span>Delete your own note</a></li></ul></li><li class="nav-group">Pages<ul><li><a href="#get-pages"><span class="m m-get">GET</span>List annotated pages</a></li><li><a href="#patch-pages-id"><span class="m m-patch">PATCH</span>Rename a page</a></li><li><a href="#delete-pages-id"><span class="m m-delete">DELETE</span>Delete a page and its notes</a></li></ul></li><li class="nav-group">Teams<ul><li><a href="#get-teams"><span class="m m-get">GET</span>List teams</a></li><li><a href="#post-teams"><span class="m m-post">POST</span>Create a team</a></li><li><a href="#patch-teams-id"><span class="m m-patch">PATCH</span>Rename a team</a></li><li><a href="#delete-teams-id"><span class="m m-delete">DELETE</span>Delete a team</a></li><li><a href="#get-teams-id-members"><span class="m m-get">GET</span>List team members</a></li><li><a href="#post-teams-id-members"><span class="m m-post">POST</span>Add somebody to a team</a></li><li><a href="#delete-teams-id-members-user-id"><span class="m m-delete">DELETE</span>Remove somebody from a team</a></li></ul></li><li class="nav-group">People<ul><li><a href="#get-members"><span class="m m-get">GET</span>List everyone in the organization</a></li><li><a href="#patch-members-user-id"><span class="m m-patch">PATCH</span>Change somebody&#x27;s role</a></li><li><a href="#delete-members-user-id"><span class="m m-delete">DELETE</span>Remove somebody from the organization</a></li><li><a href="#get-invites"><span class="m m-get">GET</span>List invite codes</a></li><li><a href="#post-invites"><span class="m m-post">POST</span>Mint an invite code</a></li><li><a href="#delete-invites-code"><span class="m m-delete">DELETE</span>Revoke an invite code</a></li></ul></li><li class="nav-group">Inbox<ul><li><a href="#get-notifications"><span class="m m-get">GET</span>Your inbox</a></li><li><a href="#post-notifications-read"><span class="m m-post">POST</span>Mark notifications read</a></li></ul></li><li class="nav-group">Objects<ul><li><a href="#note">Note</a></li><li><a href="#page">Page</a></li><li><a href="#team">Team</a></li><li><a href="#member">Member</a></li><li><a href="#error">Error</a></li></ul></li></ul></nav></aside>
+  <main class="d-main">
+    <h1>WhyTho API reference</h1>
+    <p class="lede">Version 1.0.0. Base URL <code>https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api</code></p>
+    <div class="d-intro"><p>WhyTho records why the elements on a webpage are the way they are. A note is attached to a CSS selector rather than to a screenshot or a line number, and carries who wrote it, which viewport widths it applies to, and the context it was written in.</p>
+<h2 id="authentication">Authentication</h2>
+<p>Every request needs an API key in the <code>Authorization</code> header:</p>
+<pre><code>Authorization: Bearer why_live_...</code></pre>
+<p>Create one in the WhyTho app under <strong>API</strong>. A key is scoped to one workspace, personal or an organization, and is created either <strong>read only</strong> or <strong>read and write</strong>. A read only key is refused with 403 on anything that is not a GET. Keys are stored as hashes, so a lost key is replaced rather than recovered.</p>
+<h2 id="what-a-key-can-reach">What a key can reach</h2>
+<p>Exactly what its owner could reach in the app, and nothing more. Only the author of a note can edit or delete it. Only organization admins can change teams, membership and invites. The owner of an organization cannot be removed through the API at all.</p>
+<h2 id="provenance">Provenance</h2>
+<p>Notes created through this API are stored with <code>source: &quot;api&quot;</code>, because nothing verified that the selector was ever on the page. Notes captured by the annotator carry <code>source: &quot;annotator&quot;</code>. Filter on it with <code>?source=annotator</code> when the difference matters, which it does if you are using notes as a build guardrail.</p>
+<h2 id="rate-limits">Rate limits</h2>
+<p>None enforced yet. Be reasonable, cache what you poll, and page in blocks of 200 rather than looping single requests.</p>
+<p>Built by <a href="https://www.jakelabate.com/products/whytho/">Jake Labate</a>.</p></div>
+    <p class="d-postman">Prefer to poke at it? The same spec is a
+      <a href="https://go.postman.co/collection/32118341-290c4a41-b6c0-4a90-b336-168d8b1541f7">Postman collection</a>,
+      or download <a href="whytho-openapi.json">the OpenAPI file</a>.</p>
+    <section class="d-group"><h2 id="key">Key</h2><p class="sub">What the key can see.</p>
+<article class="d-op" id="get-me">
+<h3>What this key can see</h3>
+<p class="d-path"><span class="m m-get">GET</span><code>/me</code></p>
+<p>Confirms the key works and reports its workspace, role and scopes. Start here.</p>
+<h4>Example</h4><pre><code>curl &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/me&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Key details</td></tr><tr><td><code>401</code></td><td>Missing, invalid or revoked key.</td></tr></tbody></table>
+</article>
+</section>
+<section class="d-group"><h2 id="notes">Notes</h2><p class="sub">The reasoning itself.</p>
+<article class="d-op" id="get-notes">
+<h3>Search notes</h3>
+<p class="d-path"><span class="m m-get">GET</span><code>/notes</code></p>
+<p>Every filter is optional and they combine into one query.</p>
+<h4>Parameters</h4><table class="d-table"><thead><tr><th>Name</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>site</code></td><td>string</td><td>Match part of the hostname. Example: <code>example.com</code></td></tr><tr><td><code>path</code></td><td>string</td><td>Path prefix. Example: <code>/products/</code></td></tr><tr><td><code>category</code></td><td><code>seo</code> or <code>content</code> or <code>tech</code> or <code>a11y</code> or <code>perf</code> or <code>ux</code></td><td></td></tr><tr><td><code>status</code></td><td><code>decided</code> or <code>proposed</code> or <code>question</code> or <code>do not change</code></td><td></td></tr><tr><td><code>applies_to</code></td><td><code>all</code> or <code>mobile</code> or <code>tablet</code> or <code>laptop</code> or <code>desktop</code></td><td>Only notes that apply at this width.</td></tr><tr><td><code>source</code></td><td><code>annotator</code> or <code>api</code></td><td></td></tr><tr><td><code>author</code></td><td>string</td><td>Exact display name. Example: <code>Jake Labate</code></td></tr><tr><td><code>team</code></td><td>string</td><td>Exact team name.</td></tr><tr><td><code>q</code></td><td>string</td><td>Free text inside the note body.</td></tr><tr><td><code>since</code></td><td>string</td><td>Notes created on or after this.</td></tr><tr><td><code>limit</code></td><td>integer</td><td></td></tr><tr><td><code>offset</code></td><td>integer</td><td></td></tr><tr><td><code>order</code></td><td><code>oldest</code></td><td>Reverses the default newest first.</td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/notes&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Matching notes</td></tr><tr><td><code>401</code></td><td>Missing, invalid or revoked key.</td></tr></tbody></table>
+</article>
+<article class="d-op" id="post-notes">
+<h3>Create a note</h3>
+<p class="d-path"><span class="m m-post">POST</span><code>/notes</code></p>
+<p>Write scope required. The page is created if it does not exist yet. An @name or @team in the body is resolved against your organization and delivered to those inboxes. Stored with <code>source: &quot;api&quot;</code>.</p>
+<h4>Body</h4><table class="d-table"><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>url</code> <span class="req">required</span></td><td>string</td><td> Example: <code>https://example.com/pricing/</code></td></tr><tr><td><code>selector</code> <span class="req">required</span></td><td>string</td><td> Example: <code>main &gt; section.hero &gt; h1</code></td></tr><tr><td><code>body</code> <span class="req">required</span></td><td>string</td><td> Example: <code>Service plus city stays, the phrase carries local demand. @Engineering keep it out of an image.</code></td></tr><tr><td><code>category</code></td><td><code>seo</code> or <code>content</code> or <code>tech</code> or <code>a11y</code> or <code>perf</code> or <code>ux</code></td><td></td></tr><tr><td><code>status</code></td><td><code>decided</code> or <code>proposed</code> or <code>question</code> or <code>do not change</code></td><td></td></tr><tr><td><code>applies_to</code></td><td>array of <code>all</code> or <code>mobile</code> or <code>tablet</code> or <code>laptop</code> or <code>desktop</code></td><td></td></tr><tr><td><code>page_title</code></td><td>string</td><td></td></tr><tr><td><code>id</code></td><td>string</td><td>Your own id for the note. Sending the same one again updates it rather than duplicating.</td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl -X POST &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/notes&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+  &quot;url&quot;: &quot;https://example.com/pricing/&quot;,
+  &quot;selector&quot;: &quot;main &gt; section.hero &gt; h1&quot;,
+  &quot;body&quot;: &quot;Service plus city stays, the phrase carries local demand.&quot;,
+  &quot;category&quot;: &quot;seo&quot;,
+  &quot;status&quot;: &quot;do not change&quot;,
+  &quot;applies_to&quot;: [
+    &quot;all&quot;
+  ]
+}&#x27;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>201</code></td><td>Created</td></tr><tr><td><code>400</code></td><td>A note needs a full url, a selector and a body.</td></tr><tr><td><code>403</code></td><td>Read only key.</td></tr></tbody></table>
+</article>
+<article class="d-op" id="get-notes-id">
+<h3>Read one note</h3>
+<p class="d-path"><span class="m m-get">GET</span><code>/notes/{id}</code></p>
+<h4>Parameters</h4><table class="d-table"><thead><tr><th>Name</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>id</code> <span class="req">required</span></td><td>string</td><td> Example: <code>n_mtvqtjrmx2lws</code></td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/notes/{id}&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>The note</td></tr><tr><td><code>404</code></td><td>No such note in this workspace.</td></tr></tbody></table>
+</article>
+<article class="d-op" id="patch-notes-id">
+<h3>Update your own note</h3>
+<p class="d-path"><span class="m m-patch">PATCH</span><code>/notes/{id}</code></p>
+<p>Write scope required, and only the author of a note can change it.</p>
+<h4>Parameters</h4><table class="d-table"><thead><tr><th>Name</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>id</code> <span class="req">required</span></td><td>string</td><td> Example: <code>n_mtvqtjrmx2lws</code></td></tr></tbody></table>
+<h4>Body</h4><table class="d-table"><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>body</code></td><td>string</td><td></td></tr><tr><td><code>selector</code></td><td>string</td><td></td></tr><tr><td><code>category</code></td><td><code>seo</code> or <code>content</code> or <code>tech</code> or <code>a11y</code> or <code>perf</code> or <code>ux</code></td><td></td></tr><tr><td><code>status</code></td><td><code>decided</code> or <code>proposed</code> or <code>question</code> or <code>do not change</code></td><td></td></tr><tr><td><code>applies_to</code></td><td>array of string</td><td></td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl -X PATCH &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/notes/{id}&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+  &quot;status&quot;: &quot;decided&quot;,
+  &quot;body&quot;: &quot;Shipped in release 2026.09. Do not revert without asking.&quot;
+}&#x27;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Updated</td></tr><tr><td><code>403</code></td><td>Read only key, or not the author.</td></tr><tr><td><code>404</code></td><td>No such note.</td></tr></tbody></table>
+</article>
+<article class="d-op" id="delete-notes-id">
+<h3>Delete your own note</h3>
+<p class="d-path"><span class="m m-delete">DELETE</span><code>/notes/{id}</code></p>
+<p>Write scope required, and only the author of a note can delete it.</p>
+<h4>Parameters</h4><table class="d-table"><thead><tr><th>Name</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>id</code> <span class="req">required</span></td><td>string</td><td> Example: <code>n_mtvqtjrmx2lws</code></td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl -X DELETE &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/notes/{id}&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Deleted</td></tr><tr><td><code>403</code></td><td>Read only key, or not the author.</td></tr></tbody></table>
+</article>
+</section>
+<section class="d-group"><h2 id="pages">Pages</h2><p class="sub">Pages that carry notes.</p>
+<article class="d-op" id="get-pages">
+<h3>List annotated pages</h3>
+<p class="d-path"><span class="m m-get">GET</span><code>/pages</code></p>
+<p>Every page carrying notes in this workspace, with a note count each.</p>
+<h4>Example</h4><pre><code>curl &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/pages&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Pages</td></tr><tr><td><code>401</code></td><td>Missing, invalid or revoked key.</td></tr></tbody></table>
+</article>
+<article class="d-op" id="patch-pages-id">
+<h3>Rename a page</h3>
+<p class="d-path"><span class="m m-patch">PATCH</span><code>/pages/{id}</code></p>
+<p>Write scope required.</p>
+<h4>Parameters</h4><table class="d-table"><thead><tr><th>Name</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>id</code> <span class="req">required</span></td><td>string</td><td>Page id from /pages.</td></tr></tbody></table>
+<h4>Body</h4><table class="d-table"><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>title</code> <span class="req">required</span></td><td>string</td><td></td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl -X PATCH &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/pages/{id}&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Updated</td></tr><tr><td><code>403</code></td><td>Read only key.</td></tr><tr><td><code>404</code></td><td>No such page in this workspace.</td></tr></tbody></table>
+</article>
+<article class="d-op" id="delete-pages-id">
+<h3>Delete a page and its notes</h3>
+<p class="d-path"><span class="m m-delete">DELETE</span><code>/pages/{id}</code></p>
+<p>Write scope required. In an organization, admins only.</p>
+<h4>Parameters</h4><table class="d-table"><thead><tr><th>Name</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>id</code> <span class="req">required</span></td><td>string</td><td>Page id from /pages.</td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl -X DELETE &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/pages/{id}&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Deleted</td></tr><tr><td><code>403</code></td><td>Read only key, or not an admin.</td></tr><tr><td><code>404</code></td><td>No such page.</td></tr></tbody></table>
+</article>
+</section>
+<section class="d-group"><h2 id="teams">Teams</h2><p class="sub">Teams inside an organization.</p>
+<article class="d-op" id="get-teams">
+<h3>List teams</h3>
+<p class="d-path"><span class="m m-get">GET</span><code>/teams</code></p>
+<h4>Example</h4><pre><code>curl &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/teams&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Teams</td></tr><tr><td><code>400</code></td><td>This key is personal, so it has no teams.</td></tr></tbody></table>
+</article>
+<article class="d-op" id="post-teams">
+<h3>Create a team</h3>
+<p class="d-path"><span class="m m-post">POST</span><code>/teams</code></p>
+<p>Write scope required. Admins only.</p>
+<h4>Body</h4><table class="d-table"><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>name</code> <span class="req">required</span></td><td>string</td><td> Example: <code>Engineering</code></td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl -X POST &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/teams&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>201</code></td><td>Created</td></tr><tr><td><code>403</code></td><td>Read only key, or not an admin.</td></tr></tbody></table>
+</article>
+<article class="d-op" id="patch-teams-id">
+<h3>Rename a team</h3>
+<p class="d-path"><span class="m m-patch">PATCH</span><code>/teams/{id}</code></p>
+<p>Write scope required. Admins only.</p>
+<h4>Parameters</h4><table class="d-table"><thead><tr><th>Name</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>id</code> <span class="req">required</span></td><td>string</td><td></td></tr></tbody></table>
+<h4>Body</h4><table class="d-table"><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>name</code> <span class="req">required</span></td><td>string</td><td></td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl -X PATCH &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/teams/{id}&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Renamed</td></tr><tr><td><code>403</code></td><td>Not an admin.</td></tr></tbody></table>
+</article>
+<article class="d-op" id="delete-teams-id">
+<h3>Delete a team</h3>
+<p class="d-path"><span class="m m-delete">DELETE</span><code>/teams/{id}</code></p>
+<p>Write scope required. Admins only.</p>
+<h4>Parameters</h4><table class="d-table"><thead><tr><th>Name</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>id</code> <span class="req">required</span></td><td>string</td><td></td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl -X DELETE &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/teams/{id}&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Deleted</td></tr><tr><td><code>403</code></td><td>Not an admin.</td></tr></tbody></table>
+</article>
+<article class="d-op" id="get-teams-id-members">
+<h3>List team members</h3>
+<p class="d-path"><span class="m m-get">GET</span><code>/teams/{id}/members</code></p>
+<h4>Parameters</h4><table class="d-table"><thead><tr><th>Name</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>id</code> <span class="req">required</span></td><td>string</td><td></td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/teams/{id}/members&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Members</td></tr></tbody></table>
+</article>
+<article class="d-op" id="post-teams-id-members">
+<h3>Add somebody to a team</h3>
+<p class="d-path"><span class="m m-post">POST</span><code>/teams/{id}/members</code></p>
+<p>Write scope required. Anyone can add themselves, admins can add others.</p>
+<h4>Parameters</h4><table class="d-table"><thead><tr><th>Name</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>id</code> <span class="req">required</span></td><td>string</td><td></td></tr></tbody></table>
+<h4>Body</h4><table class="d-table"><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>user_id</code></td><td>string</td><td>Omit to add yourself.</td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl -X POST &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/teams/{id}/members&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>201</code></td><td>Added</td></tr><tr><td><code>400</code></td><td>That person is not in this organization.</td></tr><tr><td><code>403</code></td><td>Not an admin.</td></tr></tbody></table>
+</article>
+<article class="d-op" id="delete-teams-id-members-user-id">
+<h3>Remove somebody from a team</h3>
+<p class="d-path"><span class="m m-delete">DELETE</span><code>/teams/{id}/members/{user_id}</code></p>
+<p>Write scope required. Anyone can remove themselves, admins can remove others.</p>
+<h4>Parameters</h4><table class="d-table"><thead><tr><th>Name</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>id</code> <span class="req">required</span></td><td>string</td><td></td></tr><tr><td><code>user_id</code> <span class="req">required</span></td><td>string</td><td></td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl -X DELETE &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/teams/{id}/members/{user_id}&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Removed</td></tr><tr><td><code>403</code></td><td>Not an admin.</td></tr></tbody></table>
+</article>
+</section>
+<section class="d-group"><h2 id="people">People</h2><p class="sub">Membership and invites.</p>
+<article class="d-op" id="get-members">
+<h3>List everyone in the organization</h3>
+<p class="d-path"><span class="m m-get">GET</span><code>/members</code></p>
+<h4>Example</h4><pre><code>curl &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/members&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Members</td></tr><tr><td><code>400</code></td><td>This key is personal, so it has no members.</td></tr></tbody></table>
+</article>
+<article class="d-op" id="patch-members-user-id">
+<h3>Change somebody&#x27;s role</h3>
+<p class="d-path"><span class="m m-patch">PATCH</span><code>/members/{user_id}</code></p>
+<p>Write scope required. Admins only, and never the owner.</p>
+<h4>Parameters</h4><table class="d-table"><thead><tr><th>Name</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>user_id</code> <span class="req">required</span></td><td>string</td><td></td></tr></tbody></table>
+<h4>Body</h4><table class="d-table"><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>role</code> <span class="req">required</span></td><td><code>admin</code> or <code>member</code></td><td></td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl -X PATCH &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/members/{user_id}&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Changed</td></tr><tr><td><code>400</code></td><td>You cannot change your own role.</td></tr><tr><td><code>403</code></td><td>Not an admin.</td></tr></tbody></table>
+</article>
+<article class="d-op" id="delete-members-user-id">
+<h3>Remove somebody from the organization</h3>
+<p class="d-path"><span class="m m-delete">DELETE</span><code>/members/{user_id}</code></p>
+<p>Write scope required. Admins only. The owner cannot be removed.</p>
+<h4>Parameters</h4><table class="d-table"><thead><tr><th>Name</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>user_id</code> <span class="req">required</span></td><td>string</td><td></td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl -X DELETE &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/members/{user_id}&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Removed</td></tr><tr><td><code>403</code></td><td>Not an admin.</td></tr></tbody></table>
+</article>
+<article class="d-op" id="get-invites">
+<h3>List invite codes</h3>
+<p class="d-path"><span class="m m-get">GET</span><code>/invites</code></p>
+<p>Admins only.</p>
+<h4>Example</h4><pre><code>curl &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/invites&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Invites</td></tr></tbody></table>
+</article>
+<article class="d-op" id="post-invites">
+<h3>Mint an invite code</h3>
+<p class="d-path"><span class="m m-post">POST</span><code>/invites</code></p>
+<p>Write scope required. Admins only. Codes last 30 days. People join by entering it in the app.</p>
+<h4>Body</h4><table class="d-table"><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>role</code></td><td><code>admin</code> or <code>member</code></td><td></td></tr><tr><td><code>team_id</code></td><td>string</td><td>Optional. Joining with this code also joins that team.</td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl -X POST &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/invites&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+  &quot;role&quot;: &quot;member&quot;
+}&#x27;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>201</code></td><td>Created</td></tr><tr><td><code>403</code></td><td>Not an admin.</td></tr></tbody></table>
+</article>
+<article class="d-op" id="delete-invites-code">
+<h3>Revoke an invite code</h3>
+<p class="d-path"><span class="m m-delete">DELETE</span><code>/invites/{code}</code></p>
+<p>Write scope required. Admins only.</p>
+<h4>Parameters</h4><table class="d-table"><thead><tr><th>Name</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>code</code> <span class="req">required</span></td><td>string</td><td></td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl -X DELETE &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/invites/{code}&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Revoked</td></tr></tbody></table>
+</article>
+</section>
+<section class="d-group"><h2 id="inbox">Inbox</h2><p class="sub">Notifications from @ mentions.</p>
+<article class="d-op" id="get-notifications">
+<h3>Your inbox</h3>
+<p class="d-path"><span class="m m-get">GET</span><code>/notifications</code></p>
+<p>Notes where you or one of your teams was tagged.</p>
+<h4>Parameters</h4><table class="d-table"><thead><tr><th>Name</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>unread</code></td><td>boolean</td><td>true for unread only.</td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/notifications&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Notifications</td></tr></tbody></table>
+</article>
+<article class="d-op" id="post-notifications-read">
+<h3>Mark notifications read</h3>
+<p class="d-path"><span class="m m-post">POST</span><code>/notifications/read</code></p>
+<p>Write scope required. Send ids for specific ones, or nothing to mark everything read.</p>
+<h4>Body</h4><table class="d-table"><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>ids</code></td><td>array of string</td><td></td></tr></tbody></table>
+<h4>Example</h4><pre><code>curl -X POST &quot;https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api/notifications/read&quot; \
+  -H &quot;Authorization: Bearer $WHYTHO_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot;</code></pre>
+<h4>Responses</h4><table class="d-table"><tbody><tr><td><code>200</code></td><td>Marked</td></tr><tr><td><code>403</code></td><td>Read only key.</td></tr></tbody></table>
+</article>
+</section>
+<section class="d-group"><h2 id="schemas">Objects</h2>
+<article class="d-op" id="note"><h3>Note</h3><table class="d-table"><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>id</code></td><td>string</td><td>Stable id for the note. Use it on /notes/{id}. Example: <code>n_mtvqtjrmx2lws</code></td></tr><tr><td><code>url</code></td><td>string</td><td> Example: <code>https://example.com/pricing/</code></td></tr><tr><td><code>origin</code></td><td>string</td><td> Example: <code>https://example.com</code></td></tr><tr><td><code>path</code></td><td>string</td><td> Example: <code>/pricing/</code></td></tr><tr><td><code>page_title</code></td><td>string</td><td></td></tr><tr><td><code>selector</code></td><td>string</td><td>CSS selector for the element the note is about. Example: <code>main &gt; section.hero &gt; h1</code></td></tr><tr><td><code>fallback_selector</code></td><td>string</td><td></td></tr><tr><td><code>element</code></td><td>string</td><td> Example: <code>h1</code></td></tr><tr><td><code>element_text</code></td><td>string</td><td> Example: <code>Same day plumbing repair</code></td></tr><tr><td><code>body</code></td><td>string</td><td> Example: <code>Service plus city stays, the phrase carries local demand.</code></td></tr><tr><td><code>category</code></td><td><code>seo</code> or <code>content</code> or <code>tech</code> or <code>a11y</code> or <code>perf</code> or <code>ux</code></td><td></td></tr><tr><td><code>status</code></td><td><code>decided</code> or <code>proposed</code> or <code>question</code> or <code>do not change</code></td><td></td></tr><tr><td><code>applies_to</code></td><td>array of <code>all</code> or <code>mobile</code> or <code>tablet</code> or <code>laptop</code> or <code>desktop</code></td><td>Which viewport widths the note is about, separate from the width it was taken at.</td></tr><tr><td><code>author</code></td><td>string</td><td>Resolved from the account that wrote it. Never sent by a client.</td></tr><tr><td><code>team</code></td><td>string</td><td></td></tr><tr><td><code>mentions</code></td><td>array of object</td><td>Resolved in the database from @names in the body, and delivered to those inboxes.</td></tr><tr><td><code>viewport</code></td><td>object</td><td>The viewport the note was written at.</td></tr><tr><td><code>source</code></td><td><code>annotator</code> or <code>api</code></td><td>annotator means a person selected a real element on a real page. api means it was asserted through this API and nothing verified it.</td></tr><tr><td><code>created_at</code></td><td>string</td><td></td></tr><tr><td><code>updated_at</code></td><td>string</td><td></td></tr></tbody></table></article>
+<article class="d-op" id="page"><h3>Page</h3><table class="d-table"><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>id</code></td><td>string</td><td></td></tr><tr><td><code>url</code></td><td>string</td><td></td></tr><tr><td><code>origin</code></td><td>string</td><td></td></tr><tr><td><code>path</code></td><td>string</td><td></td></tr><tr><td><code>title</code></td><td>string</td><td></td></tr><tr><td><code>notes</code></td><td>integer</td><td></td></tr><tr><td><code>updated_at</code></td><td>string</td><td></td></tr></tbody></table></article>
+<article class="d-op" id="team"><h3>Team</h3><table class="d-table"><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>id</code></td><td>string</td><td></td></tr><tr><td><code>name</code></td><td>string</td><td></td></tr><tr><td><code>members</code></td><td>integer</td><td></td></tr><tr><td><code>created_at</code></td><td>string</td><td></td></tr></tbody></table></article>
+<article class="d-op" id="member"><h3>Member</h3><table class="d-table"><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>user_id</code></td><td>string</td><td></td></tr><tr><td><code>name</code></td><td>string</td><td></td></tr><tr><td><code>role</code></td><td><code>owner</code> or <code>admin</code> or <code>member</code></td><td></td></tr><tr><td><code>created_at</code></td><td>string</td><td></td></tr></tbody></table></article>
+<article class="d-op" id="error"><h3>Error</h3><table class="d-table"><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>error</code></td><td>string</td><td></td></tr></tbody></table></article>
+</section>
+  </main>
+</div>
+
+<footer><p>WhyTho, built by Jake Labate, SEO Consultant. <a href="https://www.jakelabate.com/">jakelabate.com</a></p></footer>
+</body>
+</html>

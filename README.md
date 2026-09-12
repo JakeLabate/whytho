@@ -65,6 +65,16 @@ unsupported CSS come out wrong, and a screenshot that lies is worse than none.
 Screenshots live in a private `why-shots` bucket. Nothing is public; readers get signed urls
 that expire in an hour, minted by the edge functions which already know who is asking.
 
+## API docs
+
+`whytho-openapi.json` is the source of truth for the public API. Two things are generated
+from it, and both go stale if it is edited without regenerating:
+
+- `docs.html`, via `python3 tools/build-docs.py`. Static HTML rather than a client side
+  renderer, so the reference is crawlable, matches the site, and does not depend on a CDN.
+- The Postman collection, which is linked to the spec in Postman's Spec Hub and re-synced
+  there rather than edited by hand.
+
 ## Backend
 
 Supabase project `vvekkbboqqkxnlpmxazh`, shared with the portal and analytics apps.

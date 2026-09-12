@@ -1,0 +1,1529 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "WhyTho API",
+    "version": "1.0.0",
+    "description": "WhyTho records why the elements on a webpage are the way they are. A note is attached to a CSS selector rather than to a screenshot or a line number, and carries who wrote it, which viewport widths it applies to, and the context it was written in.\n\n## Authentication\n\nEvery request needs an API key in the `Authorization` header:\n\n```\nAuthorization: Bearer why_live_...\n```\n\nCreate one in the WhyTho app under **API**. A key is scoped to one workspace, personal or an organization, and is created either **read only** or **read and write**. A read only key is refused with 403 on anything that is not a GET. Keys are stored as hashes, so a lost key is replaced rather than recovered.\n\n## What a key can reach\n\nExactly what its owner could reach in the app, and nothing more. Only the author of a note can edit or delete it. Only organization admins can change teams, membership and invites. The owner of an organization cannot be removed through the API at all.\n\n## Provenance\n\nNotes created through this API are stored with `source: \"api\"`, because nothing verified that the selector was ever on the page. Notes captured by the annotator carry `source: \"annotator\"`. Filter on it with `?source=annotator` when the difference matters, which it does if you are using notes as a build guardrail.\n\n## Rate limits\n\nNone enforced yet. Be reasonable, cache what you poll, and page in blocks of 200 rather than looping single requests.\n\nBuilt by [Jake Labate](https://www.jakelabate.com/products/whytho/).",
+    "contact": {
+      "name": "Jake Labate",
+      "url": "https://www.jakelabate.com/products/whytho/"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-api",
+      "description": "Production"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Key",
+      "description": "What the key can see."
+    },
+    {
+      "name": "Notes",
+      "description": "The reasoning itself."
+    },
+    {
+      "name": "Pages",
+      "description": "Pages that carry notes."
+    },
+    {
+      "name": "Teams",
+      "description": "Teams inside an organization."
+    },
+    {
+      "name": "People",
+      "description": "Membership and invites."
+    },
+    {
+      "name": "Inbox",
+      "description": "Notifications from @ mentions."
+    }
+  ],
+  "paths": {
+    "/me": {
+      "get": {
+        "tags": [
+          "Key"
+        ],
+        "summary": "What this key can see",
+        "description": "Confirms the key works and reports its workspace, role and scopes. Start here.",
+        "responses": {
+          "200": {
+            "description": "Key details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "key_name": {
+                      "type": "string"
+                    },
+                    "scopes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "read",
+                          "write"
+                        ]
+                      }
+                    },
+                    "can_write": {
+                      "type": "boolean"
+                    },
+                    "scope": {
+                      "type": "string",
+                      "enum": [
+                        "personal",
+                        "organization"
+                      ]
+                    },
+                    "workspace": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "role": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "owner",
+                        "admin",
+                        "member",
+                        null
+                      ]
+                    },
+                    "pages": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "example": {
+                  "ok": true,
+                  "key_name": "CI guardrail",
+                  "scopes": [
+                    "read"
+                  ],
+                  "can_write": false,
+                  "scope": "organization",
+                  "workspace": "Acme Retail",
+                  "role": "owner",
+                  "pages": 24
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages": {
+      "get": {
+        "tags": [
+          "Pages"
+        ],
+        "summary": "List annotated pages",
+        "description": "Every page carrying notes in this workspace, with a note count each.",
+        "responses": {
+          "200": {
+            "description": "Pages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Page"
+                      }
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Page id from /pages."
+        }
+      ],
+      "patch": {
+        "tags": [
+          "Pages"
+        ],
+        "summary": "Rename a page",
+        "description": "Write scope required.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "title"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          },
+          "403": {
+            "description": "Read only key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such page in this workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Pages"
+        ],
+        "summary": "Delete a page and its notes",
+        "description": "Write scope required. In an organization, admins only.",
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "403": {
+            "description": "Read only key, or not an admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notes": {
+      "get": {
+        "tags": [
+          "Notes"
+        ],
+        "summary": "Search notes",
+        "description": "Every filter is optional and they combine into one query.",
+        "parameters": [
+          {
+            "name": "site",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "example.com",
+            "description": "Match part of the hostname."
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "/products/",
+            "description": "Path prefix."
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "seo",
+                "content",
+                "tech",
+                "a11y",
+                "perf",
+                "ux"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "decided",
+                "proposed",
+                "question",
+                "do not change"
+              ]
+            }
+          },
+          {
+            "name": "applies_to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "mobile",
+                "tablet",
+                "laptop",
+                "desktop"
+              ]
+            },
+            "description": "Only notes that apply at this width."
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "annotator",
+                "api"
+              ]
+            }
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "Jake Labate",
+            "description": "Exact display name."
+          },
+          {
+            "name": "team",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Exact team name."
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Free text inside the note body."
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Notes created on or after this."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 200
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "oldest"
+              ]
+            },
+            "description": "Reverses the default newest first."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching notes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Note"
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "limit": {
+                          "type": "integer"
+                        },
+                        "offset": {
+                          "type": "integer"
+                        },
+                        "returned": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Notes"
+        ],
+        "summary": "Create a note",
+        "description": "Write scope required. The page is created if it does not exist yet. An @name or @team in the body is resolved against your organization and delivered to those inboxes. Stored with `source: \"api\"`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "url",
+                  "selector",
+                  "body"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "example": "https://example.com/pricing/"
+                  },
+                  "selector": {
+                    "type": "string",
+                    "example": "main > section.hero > h1"
+                  },
+                  "body": {
+                    "type": "string",
+                    "example": "Service plus city stays, the phrase carries local demand. @Engineering keep it out of an image."
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "seo",
+                      "content",
+                      "tech",
+                      "a11y",
+                      "perf",
+                      "ux"
+                    ],
+                    "default": "seo"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "decided",
+                      "proposed",
+                      "question",
+                      "do not change"
+                    ],
+                    "default": "decided"
+                  },
+                  "applies_to": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "all",
+                        "mobile",
+                        "tablet",
+                        "laptop",
+                        "desktop"
+                      ]
+                    },
+                    "default": [
+                      "all"
+                    ]
+                  },
+                  "page_title": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string",
+                    "description": "Your own id for the note. Sending the same one again updates it rather than duplicating."
+                  }
+                }
+              },
+              "example": {
+                "url": "https://example.com/pricing/",
+                "selector": "main > section.hero > h1",
+                "body": "Service plus city stays, the phrase carries local demand.",
+                "category": "seo",
+                "status": "do not change",
+                "applies_to": [
+                  "all"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Note"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A note needs a full url, a selector and a body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Read only key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notes/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "example": "n_mtvqtjrmx2lws"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Notes"
+        ],
+        "summary": "Read one note",
+        "responses": {
+          "200": {
+            "description": "The note",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Note"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such note in this workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Notes"
+        ],
+        "summary": "Update your own note",
+        "description": "Write scope required, and only the author of a note can change it.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body": {
+                    "type": "string"
+                  },
+                  "selector": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "seo",
+                      "content",
+                      "tech",
+                      "a11y",
+                      "perf",
+                      "ux"
+                    ]
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "decided",
+                      "proposed",
+                      "question",
+                      "do not change"
+                    ]
+                  },
+                  "applies_to": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "example": {
+                "status": "decided",
+                "body": "Shipped in release 2026.09. Do not revert without asking."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          },
+          "403": {
+            "description": "Read only key, or not the author.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such note.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Notes"
+        ],
+        "summary": "Delete your own note",
+        "description": "Write scope required, and only the author of a note can delete it.",
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "403": {
+            "description": "Read only key, or not the author.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teams": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "List teams",
+        "responses": {
+          "200": {
+            "description": "Teams",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Team"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "This key is personal, so it has no teams.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Create a team",
+        "description": "Write scope required. Admins only.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Engineering"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "403": {
+            "description": "Read only key, or not an admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teams/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "patch": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Rename a team",
+        "description": "Write scope required. Admins only.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Renamed"
+          },
+          "403": {
+            "description": "Not an admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Delete a team",
+        "description": "Write scope required. Admins only.",
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "403": {
+            "description": "Not an admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teams/{id}/members": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "List team members",
+        "responses": {
+          "200": {
+            "description": "Members"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Add somebody to a team",
+        "description": "Write scope required. Anyone can add themselves, admins can add others.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user_id": {
+                    "type": "string",
+                    "description": "Omit to add yourself."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added"
+          },
+          "400": {
+            "description": "That person is not in this organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teams/{id}/members/{user_id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "user_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "delete": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Remove somebody from a team",
+        "description": "Write scope required. Anyone can remove themselves, admins can remove others.",
+        "responses": {
+          "200": {
+            "description": "Removed"
+          },
+          "403": {
+            "description": "Not an admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/members": {
+      "get": {
+        "tags": [
+          "People"
+        ],
+        "summary": "List everyone in the organization",
+        "responses": {
+          "200": {
+            "description": "Members",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Member"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "This key is personal, so it has no members.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/members/{user_id}": {
+      "parameters": [
+        {
+          "name": "user_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "patch": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Change somebody's role",
+        "description": "Write scope required. Admins only, and never the owner.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "role"
+                ],
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "admin",
+                      "member"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Changed"
+          },
+          "400": {
+            "description": "You cannot change your own role.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Remove somebody from the organization",
+        "description": "Write scope required. Admins only. The owner cannot be removed.",
+        "responses": {
+          "200": {
+            "description": "Removed"
+          },
+          "403": {
+            "description": "Not an admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invites": {
+      "get": {
+        "tags": [
+          "People"
+        ],
+        "summary": "List invite codes",
+        "description": "Admins only.",
+        "responses": {
+          "200": {
+            "description": "Invites"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Mint an invite code",
+        "description": "Write scope required. Admins only. Codes last 30 days. People join by entering it in the app.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "admin",
+                      "member"
+                    ],
+                    "default": "member"
+                  },
+                  "team_id": {
+                    "type": "string",
+                    "description": "Optional. Joining with this code also joins that team."
+                  }
+                }
+              },
+              "example": {
+                "role": "member"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "403": {
+            "description": "Not an admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invites/{code}": {
+      "parameters": [
+        {
+          "name": "code",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "delete": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Revoke an invite code",
+        "description": "Write scope required. Admins only.",
+        "responses": {
+          "200": {
+            "description": "Revoked"
+          }
+        }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "tags": [
+          "Inbox"
+        ],
+        "summary": "Your inbox",
+        "description": "Notes where you or one of your teams was tagged.",
+        "parameters": [
+          {
+            "name": "unread",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "true for unread only."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notifications"
+          }
+        }
+      }
+    },
+    "/notifications/read": {
+      "post": {
+        "tags": [
+          "Inbox"
+        ],
+        "summary": "Mark notifications read",
+        "description": "Write scope required. Send ids for specific ones, or nothing to mark everything read.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "example": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Marked"
+          },
+          "403": {
+            "description": "Read only key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "An API key from the WhyTho app, under API. Looks like why_live_..."
+      }
+    },
+    "schemas": {
+      "Note": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "n_mtvqtjrmx2lws",
+            "description": "Stable id for the note. Use it on /notes/{id}."
+          },
+          "url": {
+            "type": "string",
+            "example": "https://example.com/pricing/"
+          },
+          "origin": {
+            "type": "string",
+            "example": "https://example.com"
+          },
+          "path": {
+            "type": "string",
+            "example": "/pricing/"
+          },
+          "page_title": {
+            "type": "string",
+            "nullable": true
+          },
+          "selector": {
+            "type": "string",
+            "example": "main > section.hero > h1",
+            "description": "CSS selector for the element the note is about."
+          },
+          "fallback_selector": {
+            "type": "string",
+            "nullable": true
+          },
+          "element": {
+            "type": "string",
+            "nullable": true,
+            "example": "h1"
+          },
+          "element_text": {
+            "type": "string",
+            "nullable": true,
+            "example": "Same day plumbing repair"
+          },
+          "body": {
+            "type": "string",
+            "example": "Service plus city stays, the phrase carries local demand."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "seo",
+              "content",
+              "tech",
+              "a11y",
+              "perf",
+              "ux"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "decided",
+              "proposed",
+              "question",
+              "do not change"
+            ]
+          },
+          "applies_to": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "all",
+                "mobile",
+                "tablet",
+                "laptop",
+                "desktop"
+              ]
+            },
+            "description": "Which viewport widths the note is about, separate from the width it was taken at."
+          },
+          "author": {
+            "type": "string",
+            "nullable": true,
+            "description": "Resolved from the account that wrote it. Never sent by a client."
+          },
+          "team": {
+            "type": "string",
+            "nullable": true
+          },
+          "mentions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "user",
+                    "team"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Resolved in the database from @names in the body, and delivered to those inboxes."
+          },
+          "viewport": {
+            "type": "object",
+            "description": "The viewport the note was written at.",
+            "properties": {
+              "width": {
+                "type": "integer",
+                "example": 390
+              },
+              "height": {
+                "type": "integer"
+              },
+              "breakpoint": {
+                "type": "string",
+                "example": "mobile"
+              },
+              "dpr": {
+                "type": "number"
+              }
+            }
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "annotator",
+              "api"
+            ],
+            "description": "annotator means a person selected a real element on a real page. api means it was asserted through this API and nothing verified it."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Page": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Team": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "members": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Member": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "admin",
+              "member"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "error": "This key is read only. Create a key with the write scope in the API tab."
+        }
+      }
+    }
+  }
+}
