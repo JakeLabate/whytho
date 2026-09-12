@@ -5,7 +5,7 @@
   'use strict';
 
   var CFG = window.WHY_CONFIG;
-  var BUILD = '5.3';
+  var BUILD = '5.4';
   var authProviders = null;   // filled from the project's own settings endpoint
 
   function loadProviders() {
@@ -987,6 +987,18 @@
   function renderRepos() {
     var wrap = $('#repo-list');
     if (!wrap) return;
+
+    // Writing to a repository runs on a shared credential, so it is granted, not assumed.
+    var gate = $('#apply-gate');
+    var allowed = !!(profile && profile.apply_enabled);
+    if (gate) {
+      gate.hidden = allowed;
+      gate.innerHTML = '<b>Not enabled for this account.</b> Writing to a repository currently runs on one shared GitHub credential, so it is granted per account rather than open to everyone. Change requests you write are still recorded as notes.';
+    }
+    ['repo-origin', 'repo-name', 'repo-branch', 'repo-add'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.disabled = !allowed;
+    });
     if (!repos.length) {
       wrap.innerHTML = '<p class="sub">No sites mapped yet.</p>';
       return;

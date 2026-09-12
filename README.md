@@ -106,6 +106,19 @@ Three things keep that safe without a review gate:
 - Every commit records the repository and the blob sha it replaced, so undo is one call.
   That is what the Undo button in the Changes tab uses.
 
+### Who can use it
+
+Writing to a repository runs on one shared `GITHUB_TOKEN`, so it is a per account grant
+(`why_profiles.apply_enabled`), off by default, and the flag cannot be set from the client:
+a trigger reverts any change to it that comes from a request with JWT claims, so only the
+service role can grant it. Mapping a repository requires the grant too, since the mapping
+is what decides where a change gets written.
+
+That is a stopgap. The real fix is a GitHub App installed per account, so each person's
+changes are written with their own installation token, scoped to the repositories they
+chose. Until then, do not enable this for anyone whose repositories the shared token
+cannot already reach.
+
 The model is per account, chosen in Workspace and validated against an allowlist in the
 function, so a stored value can never become an arbitrary string in an API call. Which model
 made a change is recorded on the change and in the commit message, so a bad edit can be
