@@ -65,16 +65,30 @@ export default {
 
     const { key, anon } = await limiterKey(request);
     const limiter = anon ? env.ANON_LIMITER : env.API_LIMITER;
-    const { success } = await limiter.limit({ key });
-    if (!success) return tooMany(60);
+
+    // Fail open rather than 500 if the binding is missing, but say so in a header.
+    // A limiter that silently does nothing is worse than one that admits it.
+    let rl = 'off';
+    if (limiter && typeof limiter.limit === 'function') {
+      try {
+        const { success } = await limiter.limit({ key });
+        rl = success ? (anon ? 'anon-ok' : 'key-ok') : 'blocked';
+        if (!success) return tooMany(60);
+      } catch (e) {
+        rl = 'error:' + (e && e.message ? e.message.slice(0, 60) : 'unknown');
+      }
+    } else {
+      rl = 'unbound';
+    }
 
     const target = SUPABASE + (isMcp(url.pathname) ? '/why-mcp' : '/why-api') + url.pathname + url.search;
     const upstream = await fetch(new Request(target, request));
 
-    // Pass the response through untouched apart from saying where it came from,
-    // which makes a misrouted request obvious in the browser network tab.
+    // Pass the response through untouched apart from saying where it came from and
+    // what the limiter decided, which makes both routing and limits debuggable.
     const out = new Response(upstream.body, upstream);
     out.headers.set('X-WhyTho-Upstream', isMcp(url.pathname) ? 'why-mcp' : 'why-api');
+    out.headers.set('X-WhyTho-Ratelimit', rl);
     return out;
   }
 };
