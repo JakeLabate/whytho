@@ -431,3 +431,10 @@ body.doc { background: var(--ground); }
 .note-ctx { display: grid; gap: 4px; margin: 10px 0; padding: 10px 12px; background: var(--ground); border-radius: 8px; font-size: 13px; color: var(--ink-soft); }
 .note-ctx b { color: var(--ink); font-weight: 500; margin-right: 5px; }
 .note-ctx span { overflow-wrap: anywhere; }
+
+/* A quiet link in the app bar for the public reference, so leaving the app for the
+   docs is possible without giving documentation a tab beside the working views. */
+.bar-link { font-size: 14px; color: var(--ink-soft); text-decoration: none; padding: 6px 10px; border-radius: 7px; white-space: nowrap; }
+.bar-link:hover { background: var(--ground-alt); color: var(--ink); }
+.app-bar .tabs a.on { color: var(--ink); border-bottom-color: var(--violet); font-weight: 500; }
+@media (max-width: 700px) { .bar-link { order: 2; font-size: 13px; padding: 4px 8px; } }

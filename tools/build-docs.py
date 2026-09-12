@@ -177,10 +177,18 @@ __BAR__
 </html>
 '''
 
-bar = re.search(r'<header class="app-bar">.*?</header>', (ROOT / 'install.html').read_text(), re.S).group(0)
-bar = bar.replace(' class="on"', '').replace('<a href="install.html"', '<a href="install.html"')
-bar = bar.replace('<a href="about.html">How it works</a>',
-                  '<a href="about.html">How it works</a>\n    <a href="docs.html" class="on">API docs</a>')
+# The public pages share one bar. It is defined here rather than scraped from a
+# sibling page, so the docs cannot drift out of step the way they did once already.
+bar = '''<header class="app-bar">
+  <a class="app-mark" href="./">WhyTho</a>
+  <nav class="tabs">
+    <a href="about.html">How it works</a>
+    <a href="install.html">Install</a>
+    <a href="docs.html" class="on">API docs</a>
+    <a href="demo.html">Demo</a>
+  </nav>
+  <div class="app-who"><a class="who" href="./"><span class="who-text"><b>Open the app</b></span></a></div>
+</header>'''
 
 page = (page.replace('__BAR__', bar)
             .replace('__NAV__', ''.join(nav))

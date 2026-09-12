@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/console.css?v=44">
+<link rel="stylesheet" href="assets/console.css?v=45">
 </head>
 <body>
 
@@ -32,16 +32,15 @@
 <!-- Signed in: the app -->
 <div id="app" class="app" hidden>
   <header class="app-bar">
-    <a class="app-mark" href="#/notes">WhyTho</a>
+    <a class="app-mark" href="./">WhyTho</a>
     <nav class="tabs" id="tabs">
       <a href="#/notes" data-tab="notes">Notes</a>
       <a href="#/inbox" data-tab="inbox">Inbox<span class="badge" id="inbox-badge" hidden></span></a>
       <a href="#/workspace" data-tab="workspace">Workspace</a>
       <a href="#/setup" data-tab="setup">Setup</a>
       <a href="#/api" data-tab="api">API</a>
-      <a href="about.html">How it works</a>
-      <a href="install.html">Install</a>
     </nav>
+    <a class="bar-link" href="docs.html">Docs</a>
     <div class="app-who" id="app-who"></div>
   </header>
 
@@ -460,7 +459,7 @@ curl -s -X POST "<span class="api-host"></span>/invites" \
 
 <div id="toast" class="toast" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/config.js?v=44"></script>
-<script src="assets/console.js?v=44"></script>
+<script src="assets/config.js?v=45"></script>
+<script src="assets/console.js?v=45"></script>
 </body>
 </html>
