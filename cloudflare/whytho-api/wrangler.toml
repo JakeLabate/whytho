@@ -1,0 +1,19 @@
+name = "whytho-api"
+main = "src/index.js"
+compatibility_date = "2026-09-12"
+
+# Two buckets so a busy dashboard cannot starve the connector, and so an
+# unauthenticated caller gets a much smaller allowance than a real key.
+[[ratelimits]]
+name = "API_LIMITER"
+namespace_id = "2001"
+[ratelimits.simple]
+limit = 120
+period = 60
+
+[[ratelimits]]
+name = "ANON_LIMITER"
+namespace_id = "2002"
+[ratelimits.simple]
+limit = 20
+period = 60

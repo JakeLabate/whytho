@@ -65,6 +65,13 @@ unsupported CSS come out wrong, and a screenshot that lies is worse than none.
 Screenshots live in a private `why-shots` bucket. Nothing is public; readers get signed urls
 that expire in an hour, minted by the edge functions which already know who is asking.
 
+## Front door
+
+`cloudflare/whytho-api` is a Worker that fronts both edge functions at
+`whytho-api.jakelabate.com`, strips the `/functions/v1/why-api` prefix, and applies the rate
+limits the functions have no way to apply themselves. Deploy it with `npx wrangler deploy`
+from that folder. Until it is deployed, the canonical base url is still the Supabase one.
+
 ## API docs
 
 `whytho-openapi.json` is the source of truth for the public API. Two things are generated
