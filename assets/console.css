@@ -462,3 +462,7 @@ body.doc { background: var(--ground); }
 .change-error { font-size: 13px; color: #9f1239; background: #fff6f7; border-radius: 8px; padding: 9px 11px; margin-top: 8px; }
 .change-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .change-actions:empty { display: none; }
+
+.change.committed { border-left-color: #16a34a; }
+.change.committed .change-state { color: #15803d; }
+.change.reverted { border-left-color: #94a3b8; }

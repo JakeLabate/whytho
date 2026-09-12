@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WhyTho",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "Annotate any webpage with the reasoning behind it. Select an element, record why it is that way, and keep a screenshot of it with the note.",
   "homepage_url": "https://whytho.jakelabate.com/",
   "permissions": [

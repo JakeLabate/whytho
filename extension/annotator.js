@@ -9,7 +9,7 @@
 
   var CONSOLE_URL = 'https://whytho.jakelabate.com/';
   var SYNC_URL = 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync';
-  var VERSION = '5.0';
+  var VERSION = '5.1';
 
   var SVG = {
     cursor: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 1.5l9.5 5.6-4.1 1-2.2 4z"/></svg>',
@@ -1219,7 +1219,7 @@
     // Mode first, because it changes what the box is asking you for.
     var modes = el('div', 'pop-mode');
     [['note', 'Record why', 'Write down the reasoning. Nothing is changed.'],
-     ['change', 'Ask for a change', 'Claude drafts the edit and opens a pull request for you to review.']
+     ['change', 'Ask for a change', 'Claude makes the change and commits it. You can undo it from the app.']
     ].forEach(function (m) {
       var b = el('button', 'mode-b' + (intent === m[0] ? ' on' : ''), esc(m[1]));
       b.title = m[2];
@@ -1229,7 +1229,7 @@
         b.classList.add('on');
         ta.placeholder = placeholderFor();
         hint.textContent = intent === 'change'
-          ? 'This opens a pull request against the repository mapped to this site. You review the diff before anything ships.'
+          ? 'Treated as approved. Claude edits the file in the repository mapped to this site and commits it, so it goes live. Undo is one click in Changes.'
           : '';
         hint.style.display = intent === 'change' ? 'block' : 'none';
         saveBtn.textContent = intent === 'change' ? 'Request change' : (doc.notes.indexOf(n) > -1 ? 'Save' : 'Add note');
@@ -1333,7 +1333,7 @@
     var hint = el('div', 'pop-hint');
     hint.style.display = intent === 'change' ? 'block' : 'none';
     hint.textContent = intent === 'change'
-      ? 'This opens a pull request against the repository mapped to this site. You review the diff before anything ships.'
+      ? 'Treated as approved. Claude edits the file in the repository mapped to this site and commits it, so it goes live. Undo is one click in Changes.'
       : '';
     composer.appendChild(hint);
 
@@ -1387,7 +1387,7 @@
       editing = null; editingEl = null;
       render();
       toast(intent === 'change'
-        ? 'Change requested. Claude is drafting it, watch for the pull request.'
+        ? 'Change requested. Claude is making it now.'
         : (TOKEN ? 'Note saved. Sending it to your account.' : 'Note saved in this browser.'));
 
       // The picture is taken with the element still highlighted, then sent with the note.

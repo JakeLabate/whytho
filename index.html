@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/console.css?v=50">
+<link rel="stylesheet" href="assets/console.css?v=51">
 </head>
 <body>
 
@@ -96,7 +96,7 @@
       <div class="view-head">
         <div>
           <h1>Changes</h1>
-          <p class="sub">Notes you marked as a change request. Each one is drafted against the repository mapped to that site and opened as a pull request for you to review. Nothing is ever committed to your default branch.</p>
+          <p class="sub">Notes you marked as a change request. Each one is treated as approved: Claude edits the file in the repository mapped to that site and commits it. Every change records what it replaced, so undo is one click. Set a repository to require review instead if you would rather get a pull request.</p>
         </div>
       </div>
       <div id="changes-list"></div>
@@ -113,7 +113,7 @@
 
       <div class="panel-card">
         <h2>Repositories</h2>
-        <p class="sub">Map a site to the repository its source lives in, and a change request against that site can be drafted into a pull request. Without a mapping, requests are recorded and marked as skipped.</p>
+        <p class="sub">Map a site to the repository its source lives in, and a change request against that site gets made. New mappings commit directly; switch one to require review and it opens a pull request instead. Without a mapping, requests are recorded and marked as skipped.</p>
         <div class="ws-row">
           <input id="repo-origin" placeholder="https://www.example.com">
           <input id="repo-name" placeholder="owner/repository">
@@ -482,7 +482,7 @@ curl -s -X POST "<span class="api-host"></span>/invites" \
 
 <div id="toast" class="toast" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/config.js?v=50"></script>
-<script src="assets/console.js?v=50"></script>
+<script src="assets/config.js?v=51"></script>
+<script src="assets/console.js?v=51"></script>
 </body>
 </html>

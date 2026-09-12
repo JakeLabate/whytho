@@ -5,7 +5,7 @@
   'use strict';
 
   var CFG = window.WHY_CONFIG;
-  var BUILD = '5.0';
+  var BUILD = '5.1';
   var authProviders = null;   // filled from the project's own settings endpoint
 
   function loadProviders() {
@@ -899,8 +899,9 @@
   }
 
   var CHANGE_LABEL = {
-    queued: 'Queued', working: 'Drafting', opened: 'Pull request open',
-    failed: 'Failed', skipped: 'Not applied'
+    queued: 'Queued', working: 'Making the change', committed: 'Live',
+    opened: 'Pull request open', failed: 'Failed', skipped: 'Not applied',
+    reverted: 'Undone'
   };
 
   function renderChanges() {
@@ -921,10 +922,27 @@
         (c.file_path ? '<code>' + esc(c.file_path) + '</code>' : '') +
         (c.error ? '<div class="change-error">' + esc(c.error) + '</div>' : '') +
         '<div class="change-actions">' +
+        (c.commit_url ? '<a class="btn quiet small" href="' + esc(c.commit_url) + '" target="_blank" rel="noopener">See the commit</a>' : '') +
         (c.pr_url ? '<a class="btn quiet small" href="' + esc(c.pr_url) + '" target="_blank" rel="noopener">Review pull request #' + c.pr_number + '</a>' : '') +
+        (c.status === 'committed' ? '<button class="btn quiet small danger" data-undo="' + c.id + '">Undo this change</button>' : '') +
         (c.status === 'failed' || c.status === 'skipped' ? '<button class="btn quiet small" data-retry="' + c.id + '">Try again</button>' : '') +
         '</div></div>';
     }).join('');
+
+    wrap.querySelectorAll('[data-undo]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        b.disabled = true; b.textContent = 'Undoing';
+        fetch(CFG.supabaseUrl.replace(/\/$/, '') + '/functions/v1/why-apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+          body: JSON.stringify({ token: token, change_id: b.getAttribute('data-undo'), action: 'revert' })
+        }).then(function (r) { return r.json(); }).then(function (res) {
+          if (res.error) { toast(res.error); b.disabled = false; b.textContent = 'Undo this change'; return; }
+          toast('Put back the way it was.');
+          loadChanges().then(renderChanges);
+        }, function () { toast('Could not reach the service.'); });
+      });
+    });
 
     wrap.querySelectorAll('[data-retry]').forEach(function (b) {
       b.addEventListener('click', function () {
@@ -949,9 +967,22 @@
     }
     wrap.innerHTML = '<ul class="key-list">' + repos.map(function (r) {
       return '<li><div><b>' + esc(String(r.origin).replace(/^https?:\/\//, '')) + '</b>' +
-        '<br><span class="sub">' + esc(r.repo) + ' &middot; ' + esc(r.branch) + '</span></div>' +
+        '<br><span class="sub">' + esc(r.repo) + ' &middot; ' + esc(r.branch) + ' &middot; ' +
+        esc(r.apply_mode === 'pr' ? 'opens a pull request' : 'commits directly') + '</span></div>' +
+        '<button class="btn quiet small" data-mode="' + r.id + '" data-next="' + (r.apply_mode === 'pr' ? 'direct' : 'pr') + '">' +
+        (r.apply_mode === 'pr' ? 'Commit directly' : 'Require review') + '</button>' +
         '<button class="btn quiet small danger" data-unmap="' + r.id + '">Remove</button></li>';
     }).join('') + '</ul>';
+
+    wrap.querySelectorAll('[data-mode]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        sb.from('why_repos').update({ apply_mode: b.getAttribute('data-next') })
+          .eq('id', b.getAttribute('data-mode')).then(function (r) {
+            if (r.error) { toast(r.error.message); return; }
+            loadRepos().then(renderRepos);
+          });
+      });
+    });
 
     wrap.querySelectorAll('[data-unmap]').forEach(function (b) {
       b.addEventListener('click', function () {
