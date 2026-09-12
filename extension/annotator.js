@@ -9,7 +9,7 @@
 
   var CONSOLE_URL = 'https://whytho.jakelabate.com/';
   var SYNC_URL = 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync';
-  var VERSION = '5.2';
+  var VERSION = '6.0';
 
   var SVG = {
     cursor: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 1.5l9.5 5.6-4.1 1-2.2 4z"/></svg>',
@@ -665,9 +665,19 @@
   .pop-ctx { font-size: 11.5px; color: #6b6480; margin-top: 7px; }
   .pop-by { font-size: 11.5px; color: #6b6480; margin-top: 9px; }
   .pop .mentions { position: static; margin-top: 6px; box-shadow: none; }
-  .pop-mode { display: flex; gap: 5px; margin-bottom: 9px; }
-  .mode-b { flex: 1; font: inherit; font-size: 12px; border: 1px solid #ddd7ce; background: #fff; color: #4a4560; border-radius: 8px; padding: 7px 8px; cursor: pointer; }
+  .pop-mode { display: flex; gap: 6px; margin-bottom: 10px; }
+  .mode-b { flex: 1; font: inherit; border: 1px solid #ddd7ce; background: #fff; color: #4a4560; border-radius: 9px; padding: 7px 9px; cursor: pointer; text-align: left; line-height: 1.25; }
+  .mode-b .mode-t { display: block; font-size: 12.5px; font-weight: 600; }
+  .mode-b .mode-s { display: block; font-size: 10.5px; opacity: .75; margin-top: 1px; }
   .mode-b.on { background: #1c1a2e; border-color: #1c1a2e; color: #fff; }
+  .mode-b:last-child.on { background: #5b21b6; border-color: #5b21b6; }
+
+  .pop-flag { font-size: 11.5px; line-height: 1.45; border-radius: 8px; padding: 8px 10px; margin-bottom: 9px; }
+  .pop-flag b { display: block; }
+  .pop-flag.to-app { background: #f3f0eb; color: #4a4560; }
+  .pop-flag.to-claude { background: #f3e8ff; color: #5b21b6; }
+  .pop-save.to-claude { background: #7c3aed; }
+  .pop-save.to-claude:hover { background: #6d28d9; }
   .pop-reach { margin-top: 9px; }
   .pop-hint { font-size: 11.5px; line-height: 1.45; color: #6b6480; background: #f6f3ee; border-radius: 7px; padding: 8px 9px; margin-top: 8px; }
   .card .ask { font-size: 9.5px; letter-spacing: .03em; text-transform: uppercase; background: #1c1a2e; color: #fff; border-radius: 999px; padding: 2px 7px; }
@@ -1090,7 +1100,7 @@
       var vpTxt = n.viewport ? n.viewport.breakpoint + ' ' + n.viewport.width + 'px' : '';
       card.innerHTML =
         '<div class="top"><span class="num">' + idx + '</span>' +
-        (n.intent === 'change' ? '<span class="ask">change requested</span>' : '') +
+        (n.intent === 'change' ? '<span class="ask">sent to Claude</span>' : '') +
         '<span>' + esc(catOf(n.category).label) + '</span>' +
         '<span>' + esc(n.status) + '</span><span style="margin-left:auto">' + esc(vpTxt) + '</span></div>' +
         '<div class="body">' + withMentions(n.body) + '</div>' +
@@ -1186,6 +1196,17 @@
     composer = el('div', 'pop');
     composer.dataset.noteId = n.id;
 
+    var flag = el('div', 'pop-flag');
+
+    function paintFlag() {
+      flag.className = 'pop-flag ' + (intent === 'change' ? 'to-claude' : 'to-app');
+      flag.innerHTML = intent === 'change'
+        ? '<b>This goes to Claude.</b> It will edit your site and commit the change.'
+        : '<b>This stays in WhyTho.</b> Nothing on your site changes.';
+    }
+    paintFlag();
+    composer.appendChild(flag);
+
     var head = el('div', 'pop-head');
     head.innerHTML = '<span class="pop-tag">' + esc(n.tag) + '</span><code>' + esc(n.selector) + '</code>';
     var x = el('button', 'pop-x');
@@ -1224,11 +1245,12 @@
 
     // Mode first, because it changes what the box is asking you for.
     var modes = el('div', 'pop-mode');
-    [['note', 'Record why', 'Write down the reasoning. Nothing is changed.'],
-     ['change', 'Ask for a change', 'Claude makes the change and commits it. You can undo it from the app.']
+    [['note', 'Note', 'Saved to WhyTho', 'Written down and kept. Your site is not touched.'],
+     ['change', 'Change', 'Sent to Claude', 'Claude edits your site and commits it. Undo from the app.']
     ].forEach(function (m) {
-      var b = el('button', 'mode-b' + (intent === m[0] ? ' on' : ''), esc(m[1]));
-      b.title = m[2];
+      var b = el('button', 'mode-b' + (intent === m[0] ? ' on' : ''),
+        '<span class="mode-t">' + esc(m[1]) + '</span><span class="mode-s">' + esc(m[2]) + '</span>');
+      b.title = m[3];
       b.addEventListener('click', function () {
         intent = m[0];
         modes.querySelectorAll('.mode-b').forEach(function (x) { x.classList.remove('on'); });
@@ -1237,9 +1259,11 @@
         hint.textContent = intent === 'change'
           ? 'Treated as approved. Claude edits the file in the repository mapped to this site and commits it, so it goes live. Undo is one click in Changes.'
           : '';
+        paintFlag();
         hint.style.display = intent === 'change' ? 'block' : 'none';
         reachWrap.style.display = intent === 'change' ? 'block' : 'none';
-        saveBtn.textContent = intent === 'change' ? 'Request change' : (doc.notes.indexOf(n) > -1 ? 'Save' : 'Add note');
+        saveBtn.textContent = intent === 'change' ? 'Send to Claude' : 'Save note';
+        saveBtn.classList.toggle('to-claude', intent === 'change');
       });
       modes.appendChild(b);
     });
@@ -1400,7 +1424,7 @@
       actions.appendChild(del);
     }
 
-    var saveBtn = el('button', 'pop-save', intent === 'change' ? 'Request change' : (doc.notes.indexOf(n) > -1 ? 'Save' : 'Add note'));
+    var saveBtn = el('button', 'pop-save' + (intent === 'change' ? ' to-claude' : ''), intent === 'change' ? 'Send to Claude' : 'Save note');
     saveBtn.addEventListener('click', save);
     actions.appendChild(saveBtn);
     composer.appendChild(actions);
