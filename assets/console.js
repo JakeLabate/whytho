@@ -5,7 +5,7 @@
   'use strict';
 
   var CFG = window.WHY_CONFIG;
-  var BUILD = '5.4';
+  var BUILD = '6.0';
   var authProviders = null;   // filled from the project's own settings endpoint
 
   function loadProviders() {
@@ -984,16 +984,86 @@
     });
   }
 
+  /* ---------- the account's own GitHub credential ---------- */
+
+  var gitCred = null;
+
+  function credUrl() { return CFG.supabaseUrl.replace(/\/$/, '') + '/functions/v1/why-credentials'; }
+
+  function credCall(body) {
+    return sb.auth.getSession().then(function (s) {
+      var jwt = s.data.session && s.data.session.access_token;
+      return fetch(credUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + jwt },
+        body: JSON.stringify(body)
+      });
+    }).then(function (r) { return r.json(); });
+  }
+
+  function loadCredential() {
+    if (!user) { gitCred = null; return Promise.resolve(); }
+    return credCall({ action: 'status' })
+      .then(function (r) { gitCred = r && r.connected ? r.credential : null; }, function () { gitCred = null; });
+  }
+
+  function renderCredential() {
+    var box = $('#git-state');
+    if (!box) return;
+
+    if (gitCred) {
+      box.innerHTML =
+        '<div class="ext-row"><span class="ext-dot on"></span><span>Connected as <b>' +
+        esc(gitCred.account_login || 'a GitHub account') + '</b>, token ending ' + esc(gitCred.token_hint || '????') +
+        (gitCred.last_used_at ? '. Last used ' + esc(new Date(gitCred.last_used_at).toLocaleDateString()) : '. Not used yet') +
+        '.</span></div>' +
+        (gitCred.last_error ? '<p class="warn-inline">' + esc(gitCred.last_error) + '</p>' : '') +
+        '<button class="btn quiet small danger" id="git-disconnect">Disconnect</button>';
+      $('#git-disconnect').addEventListener('click', function () {
+        credCall({ action: 'disconnect' }).then(function () {
+          toast('GitHub disconnected. Change requests will stop being applied.');
+          loadCredential().then(function () { renderCredential(); renderRepos(); });
+        });
+      });
+      return;
+    }
+
+    box.innerHTML =
+      '<div class="ext-row"><span class="ext-dot"></span><span>Not connected</span></div>' +
+      '<div class="ws-row"><input id="git-token" type="password" placeholder="github_pat_..." autocomplete="off">' +
+      '<button class="btn small" id="git-connect">Connect</button></div>' +
+      '<p class="sub">Create a <b>fine grained personal access token</b> on GitHub, scoped to only the repositories WhyTho should touch, with <b>Contents: read and write</b> and, if you want review mode, <b>Pull requests: read and write</b>. It is checked against GitHub before being stored.</p>';
+
+    $('#git-connect').addEventListener('click', function () {
+      var value = $('#git-token').value.trim();
+      if (!value) { toast('Paste a token first.'); return; }
+      $('#git-connect').disabled = true;
+      $('#git-connect').textContent = 'Checking';
+      credCall({ action: 'connect', github_token: value }).then(function (r) {
+        $('#git-connect').disabled = false;
+        $('#git-connect').textContent = 'Connect';
+        if (r.error) { toast(r.error); return; }
+        $('#git-token').value = '';
+        toast('Connected as ' + (r.account_login || 'your GitHub account') + '.');
+        loadCredential().then(function () { renderCredential(); renderRepos(); });
+      }, function () {
+        $('#git-connect').disabled = false;
+        $('#git-connect').textContent = 'Connect';
+        toast('Could not reach the service.');
+      });
+    });
+  }
+
   function renderRepos() {
     var wrap = $('#repo-list');
     if (!wrap) return;
 
     // Writing to a repository runs on a shared credential, so it is granted, not assumed.
     var gate = $('#apply-gate');
-    var allowed = !!(profile && profile.apply_enabled);
+    var allowed = !!gitCred;
     if (gate) {
       gate.hidden = allowed;
-      gate.innerHTML = '<b>Not enabled for this account.</b> Writing to a repository currently runs on one shared GitHub credential, so it is granted per account rather than open to everyone. Change requests you write are still recorded as notes.';
+      gate.innerHTML = '<b>Connect GitHub first.</b> A repository can only be mapped once this account has its own GitHub token, since that token is what decides where a change can be written. Until then, change requests are recorded as notes.';
     }
     ['repo-origin', 'repo-name', 'repo-branch', 'repo-add'].forEach(function (id) {
       var el = document.getElementById(id);
@@ -1591,10 +1661,11 @@
           .then(loadKeys)
           .then(loadChanges)
           .then(loadRepos)
+          .then(loadCredential)
           .then(function () {
             applyAuthState();
             renderWho(); renderAccount(); renderWorkspace(); renderSetup();
-            renderLibrary(); renderInbox(); renderApi(); renderChanges(); renderRepos(); renderModel(); renderBuild();
+            renderLibrary(); renderInbox(); renderApi(); renderChanges(); renderCredential(); renderRepos(); renderModel(); renderBuild();
           });
       } else {
         token = null; profile = null; orgs = []; myRole = null;

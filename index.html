@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/console.css?v=54">
+<link rel="stylesheet" href="assets/console.css?v=60">
 </head>
 <body>
 
@@ -110,6 +110,12 @@
         </div>
       </div>
       <div id="workspace-box" class="panel-card"></div>
+
+      <div class="panel-card">
+        <h2>GitHub connection</h2>
+        <p class="sub">Change requests are written with your own GitHub token, never a shared one, so they can only reach repositories you already have write access to. The token is stored encrypted and never sent back to this page.</p>
+        <div id="git-state"></div>
+      </div>
 
       <div class="panel-card">
         <h2>Model</h2>
@@ -497,7 +503,7 @@ curl -s -X POST "<span class="api-host"></span>/invites" \
 
 <div id="toast" class="toast" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/config.js?v=54"></script>
-<script src="assets/console.js?v=54"></script>
+<script src="assets/config.js?v=60"></script>
+<script src="assets/console.js?v=60"></script>
 </body>
 </html>
