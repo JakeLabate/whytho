@@ -447,3 +447,18 @@ body.doc { background: var(--ground); }
 .doc-subnav a:hover { background: var(--paper); color: var(--ink); }
 .doc-subnav a.on { background: var(--ink); color: #fff; }
 @media (max-width: 700px) { .doc-subnav { padding: 8px 14px; } }
+
+/* change requests */
+.change { background: var(--paper); border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+.change.opened { border-left-color: #16a34a; }
+.change.working, .change.queued { border-left-color: var(--violet); }
+.change.failed { border-left-color: var(--rose); }
+.change.skipped { border-left-color: #94a3b8; }
+.change-top { display: flex; align-items: baseline; gap: 12px; }
+.change-state { font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-soft); }
+.change.opened .change-state { color: #15803d; }
+.change.failed .change-state { color: var(--rose); }
+.change-body { font-size: 15px; margin: 7px 0; }
+.change-error { font-size: 13px; color: #9f1239; background: #fff6f7; border-radius: 8px; padding: 9px 11px; margin-top: 8px; }
+.change-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.change-actions:empty { display: none; }

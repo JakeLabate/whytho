@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/console.css?v=46">
+<link rel="stylesheet" href="assets/console.css?v=50">
 </head>
 <body>
 
@@ -38,6 +38,7 @@
       <a href="#/inbox" data-tab="inbox">Inbox<span class="badge" id="inbox-badge" hidden></span></a>
       <a href="#/workspace" data-tab="workspace">Workspace</a>
       <a href="#/setup" data-tab="setup">Setup</a>
+      <a href="#/changes" data-tab="changes">Changes<span class="badge" id="changes-badge" hidden></span></a>
       <a href="#/api" data-tab="api">API</a>
       <a href="docs.html">Docs</a>
     </nav>
@@ -91,6 +92,16 @@
       <div id="inbox-list"></div>
     </section>
 
+    <section class="view" data-view="changes" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Changes</h1>
+          <p class="sub">Notes you marked as a change request. Each one is drafted against the repository mapped to that site and opened as a pull request for you to review. Nothing is ever committed to your default branch.</p>
+        </div>
+      </div>
+      <div id="changes-list"></div>
+    </section>
+
     <section class="view" data-view="workspace" hidden>
       <div class="view-head">
         <div>
@@ -99,6 +110,18 @@
         </div>
       </div>
       <div id="workspace-box" class="panel-card"></div>
+
+      <div class="panel-card">
+        <h2>Repositories</h2>
+        <p class="sub">Map a site to the repository its source lives in, and a change request against that site can be drafted into a pull request. Without a mapping, requests are recorded and marked as skipped.</p>
+        <div class="ws-row">
+          <input id="repo-origin" placeholder="https://www.example.com">
+          <input id="repo-name" placeholder="owner/repository">
+          <input id="repo-branch" placeholder="main" style="max-width:110px">
+          <button class="btn small" id="repo-add">Map</button>
+        </div>
+        <div id="repo-list"></div>
+      </div>
     </section>
 
     <section class="view" data-view="setup" hidden>
@@ -459,7 +482,7 @@ curl -s -X POST "<span class="api-host"></span>/invites" \
 
 <div id="toast" class="toast" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/config.js?v=46"></script>
-<script src="assets/console.js?v=46"></script>
+<script src="assets/config.js?v=50"></script>
+<script src="assets/console.js?v=50"></script>
 </body>
 </html>

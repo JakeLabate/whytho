@@ -9,7 +9,7 @@
 
   var CONSOLE_URL = 'https://whytho.jakelabate.com/';
   var SYNC_URL = 'https://vvekkbboqqkxnlpmxazh.supabase.co/functions/v1/why-sync';
-  var VERSION = '4.2';
+  var VERSION = '5.0';
 
   var SVG = {
     cursor: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 1.5l9.5 5.6-4.1 1-2.2 4z"/></svg>',
@@ -367,7 +367,7 @@
         return {
           id: n.id, selector: n.selector, fallbackSelector: n.fallbackSelector, tag: n.tag,
           textSnippet: n.textSnippet, category: n.category, status: n.status, body: n.body,
-          appliesTo: scopeOf(n), viewport: n.viewport, createdAt: n.createdAt,
+          appliesTo: scopeOf(n), intent: n.intent || 'note', viewport: n.viewport, createdAt: n.createdAt,
           context: n.context || {}, shot: n._shot || null
         };
       });
@@ -437,6 +437,7 @@
   function fromRow(r) {
     return {
       appliesTo: Array.isArray(r.applies_to) ? r.applies_to : ['all'],
+      intent: r.intent || 'note',
       context: r.context || {},
       shotUrl: r.shot_url || null,
       author: r.author || '',
@@ -515,6 +516,15 @@
       });
       lastError = '';
       notes.forEach(function (n) { n._synced = true; });
+
+      // A change request is queued by the database; this is what sets it going.
+      if (notes.some(function (n) { return n.intent === 'change'; })) {
+        fetch(SYNC_URL.replace('why-sync', 'why-sync-kick'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+          body: JSON.stringify({ token: TOKEN })
+        }).catch(function () { });
+      }
       Store.write(doc);
       setSync('cloud');
     }, function (err) { lastError = reason(err); setSync('offline', 'Note saved here but not to your account. ' + lastError); });
@@ -651,6 +661,11 @@
   .pop-ctx { font-size: 11.5px; color: #6b6480; margin-top: 7px; }
   .pop-by { font-size: 11.5px; color: #6b6480; margin-top: 9px; }
   .pop .mentions { position: static; margin-top: 6px; box-shadow: none; }
+  .pop-mode { display: flex; gap: 5px; margin-bottom: 9px; }
+  .mode-b { flex: 1; font: inherit; font-size: 12px; border: 1px solid #ddd7ce; background: #fff; color: #4a4560; border-radius: 8px; padding: 7px 8px; cursor: pointer; }
+  .mode-b.on { background: #1c1a2e; border-color: #1c1a2e; color: #fff; }
+  .pop-hint { font-size: 11.5px; line-height: 1.45; color: #6b6480; background: #f6f3ee; border-radius: 7px; padding: 8px 9px; margin-top: 8px; }
+  .card .ask { font-size: 9.5px; letter-spacing: .03em; text-transform: uppercase; background: #1c1a2e; color: #fff; border-radius: 999px; padding: 2px 7px; }
   .pop-label { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: #6b6480; margin: 11px 0 6px; }
   .pop-chips { display: flex; flex-wrap: wrap; gap: 5px; }
   .chip-w { font: inherit; font-size: 11px; border: 1px solid #ddd7ce; background: #fff; color: #4a4560; border-radius: 999px; padding: 4px 10px; cursor: pointer; }
@@ -1069,7 +1084,9 @@
       card.style.borderLeftColor = catOf(n.category).color;
       var vpTxt = n.viewport ? n.viewport.breakpoint + ' ' + n.viewport.width + 'px' : '';
       card.innerHTML =
-        '<div class="top"><span class="num">' + idx + '</span><span>' + esc(catOf(n.category).label) + '</span>' +
+        '<div class="top"><span class="num">' + idx + '</span>' +
+        (n.intent === 'change' ? '<span class="ask">change requested</span>' : '') +
+        '<span>' + esc(catOf(n.category).label) + '</span>' +
         '<span>' + esc(n.status) + '</span><span style="margin-left:auto">' + esc(vpTxt) + '</span></div>' +
         '<div class="body">' + withMentions(n.body) + '</div>' +
         (n.shotUrl ? '<img class="card-shot" src="' + esc(n.shotUrl) + '" alt="">' : '') +
@@ -1114,6 +1131,7 @@
       category: 'seo',
       status: 'decided',
       appliesTo: ['all'],
+      intent: 'note',
       body: '',
       author: identity.author || '',
       mine: true,
@@ -1196,10 +1214,39 @@
       return;
     }
 
+    var intent = n.intent || 'note';
+
+    // Mode first, because it changes what the box is asking you for.
+    var modes = el('div', 'pop-mode');
+    [['note', 'Record why', 'Write down the reasoning. Nothing is changed.'],
+     ['change', 'Ask for a change', 'Claude drafts the edit and opens a pull request for you to review.']
+    ].forEach(function (m) {
+      var b = el('button', 'mode-b' + (intent === m[0] ? ' on' : ''), esc(m[1]));
+      b.title = m[2];
+      b.addEventListener('click', function () {
+        intent = m[0];
+        modes.querySelectorAll('.mode-b').forEach(function (x) { x.classList.remove('on'); });
+        b.classList.add('on');
+        ta.placeholder = placeholderFor();
+        hint.textContent = intent === 'change'
+          ? 'This opens a pull request against the repository mapped to this site. You review the diff before anything ships.'
+          : '';
+        hint.style.display = intent === 'change' ? 'block' : 'none';
+        saveBtn.textContent = intent === 'change' ? 'Request change' : (doc.notes.indexOf(n) > -1 ? 'Save' : 'Add note');
+      });
+      modes.appendChild(b);
+    });
+    composer.appendChild(modes);
+
+    function placeholderFor() {
+      if (intent === 'change') return 'What should change about this element? Say it the way you would to a developer.';
+      return directory.length
+        ? 'Why is this element the way it is? Type @ to tag a person or a team.'
+        : 'Why is this element the way it is?';
+    }
+
     var ta = document.createElement('textarea');
-    ta.placeholder = directory.length
-      ? 'Why is this element the way it is? Type @ to tag a person or a team.'
-      : 'Why is this element the way it is?';
+    ta.placeholder = placeholderFor();
     ta.value = n.body;
     composer.appendChild(ta);
 
@@ -1283,6 +1330,13 @@
     paintChips();
     composer.appendChild(chips);
 
+    var hint = el('div', 'pop-hint');
+    hint.style.display = intent === 'change' ? 'block' : 'none';
+    hint.textContent = intent === 'change'
+      ? 'This opens a pull request against the repository mapped to this site. You review the diff before anything ships.'
+      : '';
+    composer.appendChild(hint);
+
     var row = el('div', 'pop-row');
     var cat = document.createElement('select');
     CATEGORIES.forEach(function (c) {
@@ -1314,7 +1368,7 @@
       actions.appendChild(del);
     }
 
-    var saveBtn = el('button', 'pop-save', doc.notes.indexOf(n) > -1 ? 'Save' : 'Add note');
+    var saveBtn = el('button', 'pop-save', intent === 'change' ? 'Request change' : (doc.notes.indexOf(n) > -1 ? 'Save' : 'Add note'));
     saveBtn.addEventListener('click', save);
     actions.appendChild(saveBtn);
     composer.appendChild(actions);
@@ -1326,12 +1380,15 @@
       n.status = st.value;
       n.author = identity.author || '';
       n.appliesTo = scope;
+      n.intent = intent;
       var shotOf = editingEl;
       if (doc.notes.indexOf(n) === -1) doc.notes.push(n);
       Store.write(doc);
       editing = null; editingEl = null;
       render();
-      toast(TOKEN ? 'Note saved. Sending it to your account.' : 'Note saved in this browser.');
+      toast(intent === 'change'
+        ? 'Change requested. Claude is drafting it, watch for the pull request.'
+        : (TOKEN ? 'Note saved. Sending it to your account.' : 'Note saved in this browser.'));
 
       // The picture is taken with the element still highlighted, then sent with the note.
       if (shotOf) paintHighlight(shotOf);

@@ -5,7 +5,7 @@
   'use strict';
 
   var CFG = window.WHY_CONFIG;
-  var BUILD = '4.6';
+  var BUILD = '5.0';
   var authProviders = null;   // filled from the project's own settings endpoint
 
   function loadProviders() {
@@ -157,7 +157,7 @@
   /* ---------- shell and routing ---------- */
 
   // account is reachable from the identity link in the bar, so it has no tab
-  var TABS = ['notes', 'inbox', 'workspace', 'setup', 'api', 'account'];
+  var TABS = ['notes', 'inbox', 'changes', 'workspace', 'setup', 'api', 'account'];
 
   function currentRoute() {
     var m = (location.hash || '').match(/^#\/([a-z]+)/);
@@ -873,6 +873,114 @@
     });
   }
 
+  /* ---------- change requests ---------- */
+
+  var changes = [];
+  var repos = [];
+
+  function loadChanges() {
+    if (!user) { changes = []; return Promise.resolve(); }
+    return sb.from('why_changes').select('*').order('created_at', { ascending: false }).limit(100)
+      .then(function (r) { changes = (!r.error && Array.isArray(r.data)) ? r.data : []; });
+  }
+
+  function loadRepos() {
+    if (!user) { repos = []; return Promise.resolve(); }
+    return sb.from('why_repos').select('*').order('origin')
+      .then(function (r) { repos = (!r.error && Array.isArray(r.data)) ? r.data : []; });
+  }
+
+  function renderChangesBadge() {
+    var b = $('#changes-badge');
+    if (!b) return;
+    var live = changes.filter(function (c) { return c.status === 'queued' || c.status === 'working'; }).length;
+    b.hidden = live === 0;
+    b.textContent = live === 0 ? '' : String(live);
+  }
+
+  var CHANGE_LABEL = {
+    queued: 'Queued', working: 'Drafting', opened: 'Pull request open',
+    failed: 'Failed', skipped: 'Not applied'
+  };
+
+  function renderChanges() {
+    var wrap = $('#changes-list');
+    if (!wrap) return;
+    renderChangesBadge();
+
+    if (!changes.length) {
+      wrap.innerHTML = '<div class="blank">Nothing yet. In the annotator, choose <b>Ask for a change</b> instead of Record why, and the request lands here.</div>';
+      return;
+    }
+
+    wrap.innerHTML = changes.map(function (c) {
+      return '<div class="change ' + esc(c.status) + '">' +
+        '<div class="change-top"><span class="change-state">' + esc(CHANGE_LABEL[c.status] || c.status) + '</span>' +
+        '<span class="sub">' + esc(new Date(c.created_at).toLocaleString()) + '</span></div>' +
+        (c.summary ? '<div class="change-body">' + esc(c.summary) + '</div>' : '') +
+        (c.file_path ? '<code>' + esc(c.file_path) + '</code>' : '') +
+        (c.error ? '<div class="change-error">' + esc(c.error) + '</div>' : '') +
+        '<div class="change-actions">' +
+        (c.pr_url ? '<a class="btn quiet small" href="' + esc(c.pr_url) + '" target="_blank" rel="noopener">Review pull request #' + c.pr_number + '</a>' : '') +
+        (c.status === 'failed' || c.status === 'skipped' ? '<button class="btn quiet small" data-retry="' + c.id + '">Try again</button>' : '') +
+        '</div></div>';
+    }).join('');
+
+    wrap.querySelectorAll('[data-retry]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        b.disabled = true; b.textContent = 'Working';
+        fetch(CFG.supabaseUrl.replace(/\/$/, '') + '/functions/v1/why-apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+          body: JSON.stringify({ token: token, change_id: b.getAttribute('data-retry') })
+        }).then(function () {
+          setTimeout(function () { loadChanges().then(renderChanges); }, 4000);
+        }, function () { toast('Could not reach the drafting service.'); });
+      });
+    });
+  }
+
+  function renderRepos() {
+    var wrap = $('#repo-list');
+    if (!wrap) return;
+    if (!repos.length) {
+      wrap.innerHTML = '<p class="sub">No sites mapped yet.</p>';
+      return;
+    }
+    wrap.innerHTML = '<ul class="key-list">' + repos.map(function (r) {
+      return '<li><div><b>' + esc(String(r.origin).replace(/^https?:\/\//, '')) + '</b>' +
+        '<br><span class="sub">' + esc(r.repo) + ' &middot; ' + esc(r.branch) + '</span></div>' +
+        '<button class="btn quiet small danger" data-unmap="' + r.id + '">Remove</button></li>';
+    }).join('') + '</ul>';
+
+    wrap.querySelectorAll('[data-unmap]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        sb.from('why_repos').delete().eq('id', b.getAttribute('data-unmap')).then(function (r) {
+          if (r.error) { toast(r.error.message); return; }
+          loadRepos().then(renderRepos);
+        });
+      });
+    });
+  }
+
+  function addRepo() {
+    var origin = $('#repo-origin').value.trim().replace(/\/$/, '');
+    var repo = $('#repo-name').value.trim();
+    var branch = $('#repo-branch').value.trim() || 'main';
+    if (!/^https?:\/\//.test(origin)) { toast('Start the site with https://'); return; }
+    if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { toast('Repository looks like owner/name.'); return; }
+    sb.from('why_repos').insert({
+      user_id: user.id,
+      org_id: profile ? profile.active_org_id : null,
+      origin: origin, repo: repo, branch: branch
+    }).then(function (r) {
+      if (r.error) { toast(r.error.message); return; }
+      $('#repo-origin').value = ''; $('#repo-name').value = '';
+      toast(origin + ' mapped to ' + repo + '.');
+      loadRepos().then(renderRepos);
+    });
+  }
+
   /* ---------- API keys ---------- */
 
   var apiKeys = [];
@@ -1412,10 +1520,12 @@
           .then(absorbLocal)
           .then(loadInbox)
           .then(loadKeys)
+          .then(loadChanges)
+          .then(loadRepos)
           .then(function () {
             applyAuthState();
             renderWho(); renderAccount(); renderWorkspace(); renderSetup();
-            renderLibrary(); renderInbox(); renderApi(); renderBuild();
+            renderLibrary(); renderInbox(); renderApi(); renderChanges(); renderRepos(); renderBuild();
           });
       } else {
         token = null; profile = null; orgs = []; myRole = null;
@@ -1443,6 +1553,9 @@
     });
 
     $('#viewer-close').addEventListener('click', function () { current = null; go('notes'); });
+
+    var repoBtn = $('#repo-add');
+    if (repoBtn) repoBtn.addEventListener('click', addRepo);
 
     var keyBtn = $('#key-create');
     if (keyBtn) keyBtn.addEventListener('click', createKey);
